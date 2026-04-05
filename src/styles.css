@@ -543,3 +543,54 @@ mark {
   .viewer-service-bar { flex-direction: column; align-items: stretch; }
   .service-actions { justify-content: flex-start; }
 }
+
+/* File Management UI */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.remove-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #ecf6f5;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.remove-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.upload-box:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

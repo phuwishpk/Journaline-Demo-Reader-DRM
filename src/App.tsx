@@ -9,6 +9,11 @@ import type { ActionLink, InlineNode, JournalineDocument, PageNode } from './typ
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
+type UploadedFile = {
+  name: string;
+  size: number;
+};
+
 export default function App() {
   const [xmlText, setXmlText] = useState<string>('');
   const [sourceLabel, setSourceLabel] = useState<string>('root.xml');
@@ -18,6 +23,9 @@ export default function App() {
   const [audioMap, setAudioMap] = useState<AudioMap>({});
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [audioFile, setAudioFile] = useState<UploadedFile | null>(null);
+  const [imageFiles, setImageFiles] = useState<UploadedFile[]>([]);
+  const [uploadError, setUploadError] = useState<string>('');
 
   const doc = useMemo<JournalineDocument | null>(() => {
     if (!xmlText) return null;
@@ -45,6 +53,52 @@ export default function App() {
     [audioMap, resolved?.page, sourceLabel, doc],
   );
 
+  async function detectAssociatedFiles(xmlFileName: string) {
+    try {
+      // Try to fetch audio-map.json which contains audio file names
+      const audioMapResponse = await fetch('/audio/audio-map.json');
+      if (audioMapResponse.ok) {
+        const audioMapData = await audioMapResponse.json() as Record<string, string>;
+        // Look for audio files associated with this XML
+        const lowerFileName = xmlFileName.toLowerCase();
+        let audioPath: string | undefined;
+        
+        if (audioMapData[lowerFileName]) {
+          audioPath = audioMapData[lowerFileName];
+        } else if (audioMapData[xmlFileName]) {
+          audioPath = audioMapData[xmlFileName];
+        }
+        
+        if (audioPath) {
+          // Extract just the filename from the path
+          const audioFileName = audioPath.split('/').pop() || audioPath;
+          setAudioFile({ name: audioFileName, size: 0 });
+        }
+      }
+
+      // Try to fetch images-map.json which contains image filenames for each XML
+      const imagesMapResponse = await fetch('/images/images-map.json');
+      if (imagesMapResponse.ok) {
+        const imagesMapData = await imagesMapResponse.json() as Record<string, string[]>;
+        // Look for images associated with this XML
+        const lowerFileName = xmlFileName.toLowerCase();
+        let associatedImages: string[] = [];
+        
+        if (imagesMapData[lowerFileName]) {
+          associatedImages = imagesMapData[lowerFileName];
+        } else if (imagesMapData[xmlFileName]) {
+          associatedImages = imagesMapData[xmlFileName];
+        }
+        
+        if (associatedImages.length > 0) {
+          setImageFiles(associatedImages.map(name => ({ name, size: 0 })));
+        }
+      }
+    } catch {
+      // Silently fail - file detection is optional
+    }
+  }
+
   async function loadSample(path: string, label: string) {
     setStatus('loading');
     setError('');
@@ -56,6 +110,8 @@ export default function App() {
       setXmlText(text);
       setSourceLabel(label);
       setStatus('ready');
+      // Detect and load associated files
+      await detectAssociatedFiles(label);
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Unable to load XML file.');
@@ -67,16 +123,54 @@ export default function App() {
     if (!file) return;
     setStatus('loading');
     setError('');
+    setUploadError('');
     try {
       const text = await file.text();
       parseJournalineXml(text);
       setXmlText(text);
       setSourceLabel(file.name);
       setStatus('ready');
+      // Detect and load associated files
+      await detectAssociatedFiles(file.name);
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Invalid XML file.');
     }
+  }
+
+  function handleAudioUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!xmlText) {
+      setUploadError('Please load or upload an XML file first');
+      return;
+    }
+    
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setUploadError('');
+    setAudioFile({ name: file.name, size: file.size });
+  }
+
+  function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!xmlText) {
+      setUploadError('Please load or upload an XML file first');
+      return;
+    }
+
+    const files = event.target.files;
+    if (!files) return;
+
+    setUploadError('');
+    const newImages = Array.from(files).map(file => ({ name: file.name, size: file.size }));
+    setImageFiles([...imageFiles, ...newImages]);
+  }
+
+  function removeAudioFile() {
+    setAudioFile(null);
+  }
+
+  function removeImageFile(index: number) {
+    setImageFiles(imageFiles.filter((_, i) => i !== index));
   }
 
   function navigateTo(id?: string) {
@@ -118,6 +212,56 @@ export default function App() {
           <p className="helper-text">Tip: keep page <code>idString</code> values stable to match per-page audio files.</p>
         </div>
 
+        {xmlText && (
+          <>
+            <div className="control-section">
+              <h2>Upload Audio</h2>
+              <label className="upload-box">
+                <span>Select .mp3 or .wav file (1 file only)</span>
+                <input 
+                  type="file" 
+                  accept=".mp3,.wav,audio/mpeg,audio/wav" 
+                  onChange={handleAudioUpload}
+                  disabled={!!audioFile}
+                />
+              </label>
+              {audioFile && (
+                <div className="file-list">
+                  <div className="file-item">
+                    <span className="file-name">🔊 {audioFile.name}</span>
+                    <button className="remove-btn" onClick={removeAudioFile}>✕</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="control-section">
+              <h2>Upload Images</h2>
+              <label className="upload-box">
+                <span>Select .jpg, .png or .gif files (multiple allowed)</span>
+                <input 
+                  type="file" 
+                  accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" 
+                  multiple
+                  onChange={handleImageUpload}
+                />
+              </label>
+              {imageFiles.length > 0 && (
+                <div className="file-list">
+                  {imageFiles.map((img, index) => (
+                    <div key={`img-${index}`} className="file-item">
+                      <span className="file-name">🖼 {img.name}</span>
+                      <button className="remove-btn" onClick={() => removeImageFile(index)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {uploadError && <div className="control-section error-text">{uploadError}</div>}
+
         <div className="control-section small-text">
           <h2>Status</h2>
           <p><strong>Source:</strong> {sourceLabel}</p>
@@ -128,7 +272,8 @@ export default function App() {
               <p><strong>Pages:</strong> {Object.keys(doc.pages).length}</p>
               <p><strong>Author:</strong> {doc.meta.author || '—'}</p>
               <p><strong>Version:</strong> {doc.meta.version || '—'}</p>
-              <p><strong>Audio:</strong> {audioInfo.url ? 'Mapped' : 'No match'}</p>
+              <p><strong>Audio:</strong> {audioFile ? audioFile.name : 'No match'}</p>
+              <p><strong>Images:</strong> {imageFiles.length > 0 ? imageFiles.length : 'No images'}</p>
             </>
           ) : null}
         </div>

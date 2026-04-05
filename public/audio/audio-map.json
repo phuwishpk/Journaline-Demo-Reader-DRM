@@ -1,5 +1,6 @@
 {
   "root.xml": "/audio/hot_news.wav",
   "fulljournaline_example.xml": "/audio/hot_news.wav",
-  "simplejournaline_example.xml": "/audio/generic_root.wav"
+  "simplejournaline_example.xml": "/audio/generic_root.wav",
+  "root_pythagoras_th.xml": "/audio/hot_news.wav"
 }
