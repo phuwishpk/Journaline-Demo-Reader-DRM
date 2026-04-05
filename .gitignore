@@ -29,9 +29,24 @@ dist-ssr/
 # Vite
 .vite/
 
-# Uploaded audio files (keep original sample files only)
-public/audio/*-[0-9]*.mp3
-public/audio/*-[0-9]*.wav
+# Uploaded user files (keep only original sample files)
+# XML files uploaded by users
+public/data/*.xml
+!public/data/*Example*.xml
+!public/data/root*.xml
+!public/data/Journaline.xsd
+!public/data/README.txt
+
+# Images uploaded by users
+public/images/**/*
+!public/images/pythagoras/**
+
+# Audio files uploaded by users
+public/audio/*.mp3
+public/audio/*.wav
+public/audio/*.flac
+public/audio/*.ogg
+!public/audio/audio-map.json
 
 # TypeScript
 *.tsbuildinfo

@@ -38,6 +38,7 @@ export default function App() {
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
   const [savedXmls, setSavedXmls] = useState<Array<{ name: string; label: string }>>([]);
+  const [validationResult, setValidationResult] = useState<{ valid: boolean; errors?: Array<{ message: string; line?: number; column?: number }>; message?: string } | null>(null);
 
   const doc = useMemo<JournalineDocument | null>(() => {
     if (!xmlText) return null;
@@ -241,6 +242,9 @@ export default function App() {
       
       // Detect and load associated files
       await detectAssociatedFiles(file.name);
+      
+      // Validate XML against schema
+      await validateXmlAgainstSchema(text);
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Invalid XML file.');
@@ -313,6 +317,37 @@ export default function App() {
       const errorMsg = err instanceof Error ? err.message : 'Network error';
       console.error('Failed to delete saved XML:', err);
       setUploadError(`Delete failed: ${errorMsg}`);
+    }
+  }
+
+  async function validateXmlAgainstSchema(xmlContent: string) {
+    try {
+      const response = await fetch('http://localhost:5001/api/validate-xml', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ xmlContent })
+      });
+      
+      const result = await response.json();
+      setValidationResult(result);
+      
+      if (result.valid) {
+        console.log('✓ XML is valid according to Journaline.xsd');
+      } else {
+        console.warn('✗ XML validation errors:', result.errors);
+        if (result.errors && result.errors.length > 0) {
+          const errorMsg = result.errors.map((e: any) => `Line ${e.line}: ${e.message}`).join('\n');
+          setUploadError(`Validation errors:\n${errorMsg}`);
+        }
+      }
+    } catch (err) {
+      console.error('Validation request failed:', err);
+      setValidationResult({
+        valid: false,
+        error: 'Failed to validate XML'
+      });
     }
   }
 
@@ -552,6 +587,38 @@ export default function App() {
             <input type="file" accept=".xml,text/xml" onChange={handleUpload} />
           </label>
           <p className="helper-text">Tip: keep page <code>idString</code> values stable to match per-page audio files.</p>
+          
+          {validationResult && (
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '12px', 
+              borderRadius: '8px',
+              backgroundColor: validationResult.valid ? 'rgba(26, 160, 131, 0.15)' : 'rgba(255, 107, 107, 0.15)',
+              border: `1px solid ${validationResult.valid ? '#1aa083' : '#ff6b6b'}`
+            }}>
+              <p style={{ 
+                margin: '0 0 8px 0',
+                color: validationResult.valid ? '#1aa083' : '#ff6b6b',
+                fontWeight: 'bold'
+              }}>
+                {validationResult.valid ? '✓ XML Valid' : '✗ XML Invalid'}
+              </p>
+              {validationResult.message && (
+                <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem' }}>
+                  {validationResult.message}
+                </p>
+              )}
+              {validationResult.errors && validationResult.errors.length > 0 && (
+                <div style={{ fontSize: '0.85rem' }}>
+                  {validationResult.errors.map((error, idx) => (
+                    <p key={idx} style={{ margin: '4px 0', color: '#ff6b6b' }}>
+                      {error.line && `Line ${error.line}: `}{error.message}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {xmlText && (

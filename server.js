@@ -3,6 +3,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import libxmljs from 'libxmljs2';
+import os from 'os';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -178,6 +181,69 @@ app.delete('/api/delete-xml', (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete XML file' });
+  }
+});
+
+// Validate XML against Journaline.xsd
+app.post('/api/validate-xml', (req, res) => {
+  try {
+    const { xmlContent } = req.body;
+    
+    if (!xmlContent) {
+      return res.status(400).json({ error: 'Missing XML content' });
+    }
+    
+    // Load XSD schema
+    const xsdPath = path.join(dataDir, 'Journaline.xsd');
+    if (!fs.existsSync(xsdPath)) {
+      return res.status(400).json({ 
+        valid: false,
+        error: 'Journaline.xsd not found in /data directory'
+      });
+    }
+    
+    try {
+      // Parse XML and XSD
+      const xmlDoc = libxmljs.parseXml(xmlContent);
+      const xsdContent = fs.readFileSync(xsdPath, 'utf-8');
+      const xsdDoc = libxmljs.parseXml(xsdContent);
+      
+      // Validate XML against XSD
+      const isValid = xmlDoc.validate(xsdDoc);
+      
+      if (isValid) {
+        res.json({
+          valid: true,
+          message: 'XML is valid according to Journaline.xsd',
+          errors: []
+        });
+      } else {
+        const errors = xmlDoc.validationErrors.map(err => ({
+          message: err.message,
+          level: err.level,
+          file: err.file,
+          line: err.line,
+          column: err.column
+        }));
+        
+        res.json({
+          valid: false,
+          message: 'XML validation failed',
+          errors: errors
+        });
+      }
+    } catch (validationErr) {
+      res.json({
+        valid: false,
+        message: 'XML validation failed',
+        error: validationErr instanceof Error ? validationErr.message : 'Validation error'
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      valid: false,
+      error: `Validation error: ${err instanceof Error ? err.message : 'Unknown error'}`
+    });
   }
 });
 
