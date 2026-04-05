@@ -48,6 +48,7 @@ code { font-family: 'Cascadia Code', 'Consolas', monospace; }
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 16px;
   padding: 16px;
+  overflow: hidden;
 }
 
 .control-section h2 {
@@ -583,14 +584,23 @@ mark {
 input[type="range"] {
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   width: 100%;
   height: 8px;
-  background: linear-gradient(to right, #1aa083 0%, #1aa083 50%, #ddd 50%, #ddd 100%);
+  background: #c8c8c8;
   border-radius: 5px;
   outline: none;
-  -webkit-slider-thumb-appearance: none;
   cursor: pointer;
-  padding: 8px 0;
+  padding: 0;
+  margin: 0;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  background: #c8c8c8;
+  border-radius: 5px;
+  border: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -604,10 +614,24 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
   transition: background 0.2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  margin-top: -8px;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   background: #fef5d4;
+}
+
+input[type="range"]::-moz-range-track {
+  background: #c8c8c8;
+  border: none;
+  border-radius: 5px;
+  height: 8px;
+}
+
+input[type="range"]::-moz-range-progress {
+  background: #1aa083;
+  height: 8px;
+  border-radius: 5px;
 }
 
 input[type="range"]::-moz-range-thumb {
@@ -623,12 +647,6 @@ input[type="range"]::-moz-range-thumb {
 
 input[type="range"]::-moz-range-thumb:hover {
   background: #fef5d4;
-}
-
-input[type="range"]::-moz-range-track {
-  background: transparent;
-  border: none;
-  box-shadow: none;
 }
 
 input[type="range"]::-moz-range-progress {

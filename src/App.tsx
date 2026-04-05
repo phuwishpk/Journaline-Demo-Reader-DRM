@@ -280,6 +280,7 @@ export default function App() {
 
   async function deleteSavedXml(filename: string) {
     try {
+      console.log('Attempting to delete:', filename);
       const response = await fetch('http://localhost:5001/api/delete-xml', {
         method: 'DELETE',
         headers: {
@@ -288,13 +289,30 @@ export default function App() {
         body: JSON.stringify({ filename })
       });
       
+      const data = await response.json();
+      console.log('Delete response:', data);
+      
       if (response.ok) {
+        console.log('File deleted successfully');
+        setUploadError('');
+        // Reload the saved XMLs list
         await loadSavedXmlsList();
+        // Close the file UI if the deleted file was active
+        if (sourceLabel === filename) {
+          setXmlText('');
+          setSourceLabel('');
+          setAudioFile(null);
+          setImageFiles([]);
+        }
       } else {
-        console.error('Failed to delete XML file');
+        const errorMsg = data?.error || 'Failed to delete XML file';
+        console.error('Delete failed:', errorMsg);
+        setUploadError(`Delete error: ${errorMsg}`);
       }
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Network error';
       console.error('Failed to delete saved XML:', err);
+      setUploadError(`Delete failed: ${errorMsg}`);
     }
   }
 
@@ -467,9 +485,29 @@ export default function App() {
           <h2>Sample XML</h2>
           <div className="button-stack">
             {SAMPLE_FILES.map((file) => (
-              <button key={file.key} className="secondary-button" onClick={() => void loadSample(file.path, file.label)}>
-                Open {file.label}
-              </button>
+              <div key={file.key} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button 
+                  className="secondary-button" 
+                  style={{ 
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title={file.label}
+                  onClick={() => void loadSample(file.path, file.label)}
+                >
+                  {file.label}
+                </button>
+                <button 
+                  className="remove-btn"
+                  style={{ width: '36px', height: '36px' }}
+                  onClick={() => void deleteSavedXml(file.label)}
+                  title="Delete XML file"
+                >
+                  ✕
+                </button>
+              </div>
             ))}
             
             {savedXmls.length > 0 && (
@@ -481,10 +519,16 @@ export default function App() {
                   <div key={savedXml.name} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button 
                       className="secondary-button" 
-                      style={{ flex: 1 }}
+                      style={{ 
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
                       onClick={() => void loadSavedXml(savedXml.name, savedXml.label)}
+                      title={savedXml.label}
                     >
-                      Open {savedXml.label}
+                      {savedXml.label}
                     </button>
                     <button 
                       className="remove-btn"
@@ -521,12 +565,21 @@ export default function App() {
                     const newAudio = e.target.value ? { name: e.target.value, size: 0 } : null;
                     setAudioFile(newAudio);
                   }}
-                  style={{ flex: 1, padding: '0.5rem', borderRadius: '4px' }}
+                  size={1}
+                  style={{ 
+                    flex: 1, 
+                    padding: '0.5rem', 
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title={audioFile?.name || 'No audio selected'}
                 >
                   <option value="">No audio selected</option>
                   {audioFile && <option value={audioFile.name}>{audioFile.name}</option>}
                 </select>
-                <label className="upload-box" style={{ marginBottom: 0, minWidth: '150px' }}>
+                <label className="upload-box" style={{ marginBottom: 0, minWidth: '120px' }}>
                   <span>Choose file</span>
                   <input 
                     type="file" 
