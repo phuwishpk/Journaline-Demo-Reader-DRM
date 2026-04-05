@@ -29,6 +29,10 @@ dist-ssr/
 # Vite
 .vite/
 
+# Uploaded audio files (keep original sample files only)
+public/audio/*-[0-9]*.mp3
+public/audio/*-[0-9]*.wav
+
 # TypeScript
 *.tsbuildinfo
 

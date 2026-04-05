@@ -12,6 +12,14 @@ type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 type UploadedFile = {
   name: string;
   size: number;
+  blobUrl?: string;
+};
+
+type SavedState = {
+  sourceLabel: string;
+  audio: UploadedFile | null;
+  images: UploadedFile[];
+  timestamp: number;
 };
 
 export default function App() {
@@ -26,6 +34,10 @@ export default function App() {
   const [audioFile, setAudioFile] = useState<UploadedFile | null>(null);
   const [imageFiles, setImageFiles] = useState<UploadedFile[]>([]);
   const [uploadError, setUploadError] = useState<string>('');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
+  const [savedXmls, setSavedXmls] = useState<Array<{ name: string; label: string }>>([]);
 
   const doc = useMemo<JournalineDocument | null>(() => {
     if (!xmlText) return null;
@@ -37,9 +49,33 @@ export default function App() {
   }, [xmlText]);
 
   useEffect(() => {
+    // Clear old localStorage entries for XMLs (they're now stored on server)
+    const keysToRemove: string[] = [];
+    for (let key in localStorage) {
+      if (key.startsWith('journaline_xml_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
     void loadSample(SAMPLE_FILES[0].path, SAMPLE_FILES[0].label);
     void loadAudioMap().then(setAudioMap);
+    // Load saved XMLs from server
+    void loadSavedXmlsList();
   }, []);
+
+  async function loadSavedXmlsList() {
+    try {
+      const response = await fetch('http://localhost:5001/api/saved-xmls');
+      if (response.ok) {
+        const data = await response.json();
+        setSavedXmls(data.files || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load saved XMLs list:', err);
+      setSavedXmls([]);
+    }
+  }
 
   useEffect(() => {
     if (doc) {
@@ -47,13 +83,50 @@ export default function App() {
     }
   }, [doc]);
 
+  // Track changes in audio and image files
+  useEffect(() => {
+    setHasChanges(true);
+  }, [audioFile, imageFiles]);
+
   const resolved = doc ? resolvePage(doc, currentPageId || doc.rootPageId) : null;
   const audioInfo = useMemo(
-    () => resolveAudioUrl({ audioMap, page: resolved?.page ?? null, sourceLabel, doc }),
-    [audioMap, resolved?.page, sourceLabel, doc],
+    () => {
+      // If there's an uploaded audio file, use that instead of mapped audio
+      if (uploadedAudioUrl) {
+        return { url: uploadedAudioUrl, matchedKey: 'uploaded' };
+      }
+      return resolveAudioUrl({ audioMap, page: resolved?.page ?? null, sourceLabel, doc });
+    },
+    [uploadedAudioUrl, audioMap, resolved?.page, sourceLabel, doc],
   );
 
   async function detectAssociatedFiles(xmlFileName: string) {
+    // Clear uploaded audio when loading new XML
+    if (uploadedAudioUrl) {
+      URL.revokeObjectURL(uploadedAudioUrl);
+    }
+    setUploadedAudioUrl(null);
+    
+    // First check if there's a saved state for this XML file in localStorage
+    try {
+      const savedState = localStorage.getItem(`journaline_${xmlFileName}`);
+      if (savedState) {
+        const parsed = JSON.parse(savedState) as SavedState;
+        setAudioFile(parsed.audio);
+        setImageFiles(parsed.images);
+        
+        // If audio file has a server path (blobUrl), use it
+        if (parsed.audio?.blobUrl && parsed.audio.blobUrl.startsWith('/')) {
+          setUploadedAudioUrl(parsed.audio.blobUrl);
+        }
+        
+        setHasChanges(false);
+        return;
+      }
+    } catch {
+      // Continue with default loading if localStorage fails
+    }
+
     try {
       // Try to fetch audio-map.json which contains audio file names
       const audioMapResponse = await fetch('/audio/audio-map.json');
@@ -73,6 +146,8 @@ export default function App() {
           // Extract just the filename from the path
           const audioFileName = audioPath.split('/').pop() || audioPath;
           setAudioFile({ name: audioFileName, size: 0 });
+        } else {
+          setAudioFile(null);
         }
       }
 
@@ -92,8 +167,12 @@ export default function App() {
         
         if (associatedImages.length > 0) {
           setImageFiles(associatedImages.map(name => ({ name, size: 0 })));
+        } else {
+          setImageFiles([]);
         }
       }
+      
+      setHasChanges(false);
     } catch {
       // Silently fail - file detection is optional
     }
@@ -130,11 +209,92 @@ export default function App() {
       setXmlText(text);
       setSourceLabel(file.name);
       setStatus('ready');
+      
+      // Save the XML to server
+      try {
+        const saveResponse = await fetch('http://localhost:5001/api/upload-xml', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            filename: file.name,
+            content: text
+          })
+        });
+        
+        const saveData = await saveResponse.json();
+        
+        if (saveResponse.ok) {
+          // Reload the saved XMLs list
+          await loadSavedXmlsList();
+          console.log('XML saved successfully:', saveData);
+        } else {
+          console.error('Failed to save XML to server:', saveData);
+          setUploadError(`Failed to save: ${saveData.error || 'Unknown error'}`);
+        }
+      } catch (saveErr) {
+        // Server error, but still allow the file to be displayed
+        console.error('Failed to save XML to server:', saveErr);
+        setUploadError(`Save error: ${saveErr instanceof Error ? saveErr.message : 'Network error'}`);
+      }
+      
       // Detect and load associated files
       await detectAssociatedFiles(file.name);
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Invalid XML file.');
+    }
+  }
+
+  async function loadSavedXml(filename: string, label: string) {
+    try {
+      setStatus('loading');
+      setError('');
+      
+      const response = await fetch('http://localhost:5001/api/get-xml', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filename })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load saved XML');
+      }
+      
+      const data = await response.json();
+      const text = data.content;
+      
+      parseJournalineXml(text);
+      setXmlText(text);
+      setSourceLabel(label);
+      setStatus('ready');
+      void detectAssociatedFiles(label);
+    } catch (err) {
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Failed to load XML');
+    }
+  }
+
+  async function deleteSavedXml(filename: string) {
+    try {
+      const response = await fetch('http://localhost:5001/api/delete-xml', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filename })
+      });
+      
+      if (response.ok) {
+        await loadSavedXmlsList();
+      } else {
+        console.error('Failed to delete XML file');
+      }
+    } catch (err) {
+      console.error('Failed to delete saved XML:', err);
     }
   }
 
@@ -148,7 +308,17 @@ export default function App() {
     if (!file) return;
     
     setUploadError('');
-    setAudioFile({ name: file.name, size: file.size });
+    
+    // Create a blob URL for the uploaded audio file
+    const blobUrl = URL.createObjectURL(file);
+    
+    // Remove old uploaded audio blob URL if exists
+    if (uploadedAudioUrl) {
+      URL.revokeObjectURL(uploadedAudioUrl);
+    }
+    
+    setAudioFile({ name: file.name, size: file.size, blobUrl });
+    setUploadedAudioUrl(blobUrl);
   }
 
   function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -166,11 +336,112 @@ export default function App() {
   }
 
   function removeAudioFile() {
+    // Revoke the blob URL to free up memory
+    if (uploadedAudioUrl) {
+      URL.revokeObjectURL(uploadedAudioUrl);
+      setUploadedAudioUrl(null);
+    }
     setAudioFile(null);
   }
 
   function removeImageFile(index: number) {
     setImageFiles(imageFiles.filter((_, i) => i !== index));
+  }
+
+  function handleSave() {
+    // Save audio file to server only if it's a NEW upload (blob URL, not a server path)
+    if (audioFile && uploadedAudioUrl && audioFile.blobUrl && audioFile.blobUrl.startsWith('blob:')) {
+      // This is a new audio file (blob URL), need to upload
+      uploadAudioFileToServer();
+    } else {
+      // No new audio upload, just save metadata
+      saveMetadataToStorage();
+    }
+  }
+
+  async function uploadAudioFileToServer() {
+    try {
+      setUploadError('');
+      
+      // Get the file from the input
+      const audioInput = document.querySelector('input[accept*="audio"]') as HTMLInputElement;
+      const file = audioInput?.files?.[0];
+      
+      if (!file) {
+        saveMetadataToStorage();
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:5001/api/upload-audio', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload audio file');
+      }
+
+      const result = await response.json();
+      
+      // Update audioFile with the server path
+      setAudioFile({
+        name: audioFile!.name,
+        size: audioFile!.size,
+        blobUrl: result.path // Store the server path instead of blob URL
+      });
+
+      // Save the server path to storage
+      saveAudioPathToStorage(result.path);
+    } catch (err) {
+      setUploadError('Failed to upload audio: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // Still save local metadata even if upload fails
+      saveMetadataToStorage();
+    }
+  }
+
+  function saveAudioPathToStorage(serverPath: string) {
+    const audioToSave = { name: audioFile!.name, size: audioFile!.size, blobUrl: serverPath };
+    const imagesToSave = imageFiles.map(f => ({ name: f.name, size: f.size }));
+    
+    const savedState: SavedState = {
+      sourceLabel,
+      audio: audioToSave,
+      images: imagesToSave,
+      timestamp: Date.now(),
+    };
+
+    try {
+      localStorage.setItem(`journaline_${sourceLabel}`, JSON.stringify(savedState));
+      setLastSaved(Date.now());
+      setHasChanges(false);
+      setUploadError('');
+    } catch (err) {
+      setUploadError('Failed to save: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  }
+
+  function saveMetadataToStorage() {
+    const audioToSave = audioFile ? { name: audioFile.name, size: audioFile.size, blobUrl: audioFile.blobUrl } : null;
+    const imagesToSave = imageFiles.map(f => ({ name: f.name, size: f.size }));
+    
+    const savedState: SavedState = {
+      sourceLabel,
+      audio: audioToSave,
+      images: imagesToSave,
+      timestamp: Date.now(),
+    };
+
+    try {
+      localStorage.setItem(`journaline_${sourceLabel}`, JSON.stringify(savedState));
+      setLastSaved(Date.now());
+      setHasChanges(false);
+      setUploadError('');
+    } catch (err) {
+      setUploadError('Failed to save: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
   }
 
   function navigateTo(id?: string) {
@@ -200,6 +471,33 @@ export default function App() {
                 Open {file.label}
               </button>
             ))}
+            
+            {savedXmls.length > 0 && (
+              <>
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', opacity: 0.7 }}>Saved XMLs:</p>
+                </div>
+                {savedXmls.map((savedXml) => (
+                  <div key={savedXml.name} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button 
+                      className="secondary-button" 
+                      style={{ flex: 1 }}
+                      onClick={() => void loadSavedXml(savedXml.name, savedXml.label)}
+                    >
+                      Open {savedXml.label}
+                    </button>
+                    <button 
+                      className="remove-btn"
+                      style={{ width: '36px', height: '36px' }}
+                      onClick={() => void deleteSavedXml(savedXml.name)}
+                      title="Delete saved XML"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
@@ -215,24 +513,47 @@ export default function App() {
         {xmlText && (
           <>
             <div className="control-section">
-              <h2>Upload Audio</h2>
-              <label className="upload-box">
-                <span>Select .mp3 or .wav file (1 file only)</span>
+              <h2>Audio</h2>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                <select 
+                  value={audioFile?.name || ''} 
+                  onChange={(e) => {
+                    const newAudio = e.target.value ? { name: e.target.value, size: 0 } : null;
+                    setAudioFile(newAudio);
+                  }}
+                  style={{ flex: 1, padding: '0.5rem', borderRadius: '4px' }}
+                >
+                  <option value="">No audio selected</option>
+                  {audioFile && <option value={audioFile.name}>{audioFile.name}</option>}
+                </select>
+                <label className="upload-box" style={{ marginBottom: 0, minWidth: '150px' }}>
+                  <span>Choose file</span>
+                  <input 
+                    type="file" 
+                    accept=".mp3,.wav,audio/mpeg,audio/wav" 
+                    onChange={handleAudioUpload}
+                  />
+                </label>
+                {audioFile && (
+                  <button className="remove-btn" onClick={removeAudioFile} style={{ width: '36px', height: '36px' }}>
+                    ✕
+                  </button>
+                )}
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <label style={{ minWidth: '80px' }}>Volume:</label>
                 <input 
-                  type="file" 
-                  accept=".mp3,.wav,audio/mpeg,audio/wav" 
-                  onChange={handleAudioUpload}
-                  disabled={!!audioFile}
+                  type="range" 
+                  min="0" 
+                  max="1" 
+                  step="0.1" 
+                  value={volume}
+                  onChange={(e) => setVolume(parseFloat(e.target.value))}
+                  style={{ flex: 1 }}
                 />
-              </label>
-              {audioFile && (
-                <div className="file-list">
-                  <div className="file-item">
-                    <span className="file-name">🔊 {audioFile.name}</span>
-                    <button className="remove-btn" onClick={removeAudioFile}>✕</button>
-                  </div>
-                </div>
-              )}
+                <span style={{ minWidth: '40px' }}>{Math.round(volume * 100)}%</span>
+              </div>
             </div>
 
             <div className="control-section">
@@ -277,6 +598,25 @@ export default function App() {
             </>
           ) : null}
         </div>
+
+        {xmlText && (
+          <div className="control-section">
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '12px' }}>
+              <button 
+                className="save-button"
+                onClick={handleSave}
+                disabled={!hasChanges}
+              >
+                💾 Save
+              </button>
+              {hasChanges && <span className="unsaved-badge">● Unsaved changes</span>}
+              {lastSaved && !hasChanges && <span className="saved-badge">✓ Saved</span>}
+            </div>
+            <p className="helper-text" style={{ margin: '0' }}>
+              {lastSaved ? `Last saved: ${new Date(lastSaved).toLocaleTimeString()}` : 'Save your file configuration'}
+            </p>
+          </div>
+        )}
       </aside>
 
       <main className="viewer-shell">
@@ -298,19 +638,22 @@ export default function App() {
             >
               {isMuted ? '🔇' : '🔊'}
             </button>
-            <select
-              className="service-action-dropdown"
-              value={volume.toString()}
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
               onChange={(e) => {
                 setVolume(Number(e.target.value));
                 setIsMuted(false);
               }}
-            >
-              <option value="0.25">25%</option>
-              <option value="0.5">50%</option>
-              <option value="0.75">75%</option>
-              <option value="1">100%</option>
-            </select>
+              style={{ width: '120px', cursor: 'pointer' }}
+              title={`Volume: ${Math.round(volume * 100)}%`}
+            />
+            <span style={{ minWidth: '40px', fontSize: '0.85rem' }}>
+              {Math.round(volume * 100)}%
+            </span>
           </div>
         </div>
 
