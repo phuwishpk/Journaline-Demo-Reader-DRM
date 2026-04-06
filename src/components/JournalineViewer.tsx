@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { inlineToPlainText, resolveAudioUrl, type AudioMap } from '../audio';
-import AudioPlayer from '../AudioPlayer';
+import AudioControls from '../AudioControls';
 import { resolvePage, resolveReferenceTarget } from '../navigation';
 import { parseJournalineXml } from '../parser';
 import type { ActionLink, InlineNode, JournalineDocument, PageNode } from '../types';
@@ -56,12 +56,42 @@ export default function JournalineViewer({
     [audioMap, resolved?.page, sourceLabel, doc],
   );
 
+  // Debug navigation info
+  useEffect(() => {
+    if (resolved) {
+      console.log('📍 Current Page Navigation:', {
+        pageId: resolved.page.id,
+        pageKind: resolved.page.kind,
+        siblingIds: resolved.page.siblingIds,
+        previousId: resolved.previousId,
+        nextId: resolved.nextId,
+        hasPreviousPage: !!resolved.previousId,
+        hasNextPage: !!resolved.nextId,
+      });
+    }
+  }, [resolved]);
+
   function navigateTo(id?: string) {
-    if (!doc || !id) return;
+    console.log('🎯 navigateTo called:', { requestedId: id, hasDoc: !!doc });
+    if (!doc || !id) {
+      console.log('❌ navigateTo blocked - no doc or id:', { noDoc: !doc, noId: !id });
+      return;
+    }
     const actual = doc.pages[id]?.kind === 'reference'
       ? resolveReferenceTarget(doc, doc.pages[id].referenceTarget || '') || doc.rootPageId
       : id;
-    if (doc.pages[actual]) setCurrentPageId(actual);
+    console.log('🔄 Navigation result:', { 
+      requestedId: id, 
+      actualId: actual, 
+      pageExists: !!doc.pages[actual],
+      pageKind: doc.pages[actual]?.kind 
+    });
+    if (doc.pages[actual]) {
+      console.log('✅ setCurrentPageId to:', actual);
+      setCurrentPageId(actual);
+    } else {
+      console.log('⚠️ Page not found:', actual);
+    }
   }
 
   return (
@@ -78,7 +108,7 @@ export default function JournalineViewer({
         </div>
         <div className="service-actions">
           <span>i</span>
-          <span>◀</span>
+          <AudioControls audioUrl={audioInfo.url} />
           <span>⚙</span>
         </div>
       </div>
@@ -101,12 +131,6 @@ export default function JournalineViewer({
               </span>
             ))}
           </nav>
-
-          <AudioPlayer
-            audioUrl={audioInfo.url}
-            pageTitle={inlineToPlainText(resolved.page.title) || 'Untitled page'}
-            matchedKey={audioInfo.matchedKey}
-          />
 
           <PageView page={resolved.page} onNavigate={navigateTo} imageMap={imageMap} doc={doc || undefined} />
         </section>
@@ -149,17 +173,23 @@ function Toolbar({
   return (
     <div className="mini-toolbar">
       <button 
-        onClick={onPrev}
+        onClick={() => {
+          console.log('🔙 Previous button clicked!');
+          onPrev();
+        }}
         title={previousTitle || undefined}
       >
-        {previousTitle ? `◀ Previous Page (${previousTitle})` : '◀ previous'}
+        ◀ previous
       </button>
       <button onClick={onUp}>↑ up</button>
       <button 
-        onClick={onNext}
+        onClick={() => {
+          console.log('⏭️ Next button clicked!');
+          onNext();
+        }}
         title={nextTitle || undefined}
       >
-        {nextTitle ? `Next Page (${nextTitle}) ▶` : 'next ▶'}
+        next ▶
       </button>
     </div>
   );

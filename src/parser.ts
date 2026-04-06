@@ -61,6 +61,70 @@ export function parseJournalineXml(xmlText: string): JournalineDocument {
   };
 }
 
+/**
+ * Extract audio and image file references from XML text
+ * Returns lists of filenames that are referenced in the document
+ */
+export function extractReferencedFilesFromXml(xmlText: string): {
+  audioFiles: string[];
+  imageFiles: string[];
+} {
+  try {
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlText, 'application/xml');
+    
+    const audioFiles = new Set<string>();
+    const imageFiles = new Set<string>();
+
+    // Find all audio elements with audiofile attribute
+    const audioElements = xml.querySelectorAll('[audiofile]');
+    audioElements.forEach((el) => {
+      const audiofile = el.getAttribute('audiofile');
+      if (audiofile) {
+        // Extract just the filename without paths
+        const filename = audiofile.split('/').pop() || audiofile;
+        audioFiles.add(filename);
+      }
+    });
+
+    // Find all image elements with target attribute (new XML format)
+    const imageElementsWithTarget = xml.querySelectorAll('image[target]');
+    imageElementsWithTarget.forEach((el) => {
+      const target = el.getAttribute('target');
+      if (target) {
+        // Keep full path for consistency with audio files
+        imageFiles.add(target);
+      }
+    });
+
+    // Also find all image elements with imageref attribute (legacy support)
+    const imageElements = xml.querySelectorAll('[imageref]');
+    imageElements.forEach((el) => {
+      const imageref = el.getAttribute('imageref');
+      if (imageref) {
+        imageFiles.add(imageref);
+      }
+    });
+
+    // Also check for image elements with direct text content (file references)
+    const pictureElements = xml.querySelectorAll('picture');
+    pictureElements.forEach((el) => {
+      const textContent = el.textContent?.trim();
+      if (textContent && !textContent.startsWith('<')) {
+        imageFiles.add(textContent);
+      }
+    });
+
+    return {
+      audioFiles: Array.from(audioFiles).sort(),
+      imageFiles: Array.from(imageFiles).sort(),
+    };
+  } catch (err) {
+    console.error('Error extracting referenced files:', err);
+    return { audioFiles: [], imageFiles: [] };
+  }
+}
+
 function parseFileInfo(root: Element): DocumentMeta {
   const fileInfo = Array.from(root.children).find((child) => child.tagName === 'fileinfo');
   const read = (name: string) => fileInfo?.querySelector(name)?.textContent?.trim();

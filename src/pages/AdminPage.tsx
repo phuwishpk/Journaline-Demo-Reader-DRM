@@ -4,6 +4,8 @@ import JournalineViewer from '../components/JournalineViewer';
 import { buildImageAliases, type ImageMap } from '../images';
 import { SAMPLE_FILES } from '../sampleXml';
 import { useAuth } from '../AuthContext';
+import { parseJournalineXml, extractReferencedFilesFromXml } from '../parser';
+import type { JournalineDocument } from '../types';
 import {
   loadStoredAudioMap,
   loadStoredImageMap,
@@ -24,6 +26,8 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
   const [baseAudioMap, setBaseAudioMap] = useState<AudioMap>({});
   const [uploadedAudioMap, setUploadedAudioMap] = useState<AudioMap>({});
   const [uploadedImageMap, setUploadedImageMap] = useState<ImageMap>({});
+  const [referencedAudioFiles, setReferencedAudioFiles] = useState<string[]>([]);
+  const [referencedImageFiles, setReferencedImageFiles] = useState<string[]>([]);
 
   useEffect(() => {
     const stored = loadStoredXml();
@@ -35,16 +39,36 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
       void loadSample(SAMPLE_FILES[0].path, SAMPLE_FILES[0].label);
     }
     void loadAudioMap().then(setBaseAudioMap);
-    setUploadedAudioMap(loadStoredAudioMap());
-    setUploadedImageMap(loadStoredImageMap());
+    // Audio/Image maps don't persist across page reloads anymore (use memory only)
   }, []);
 
   const mergedAudioMap = useMemo(() => ({ ...baseAudioMap, ...uploadedAudioMap }), [baseAudioMap, uploadedAudioMap]);
+  const mergedImageMap = useMemo(() => ({ ...uploadedImageMap }), [uploadedImageMap]);
+
+  const doc = useMemo<JournalineDocument | null>(() => {
+    if (!xmlText) return null;
+    try {
+      return parseJournalineXml(xmlText);
+    } catch {
+      return null;
+    }
+  }, [xmlText]);
+
+  // Extract referenced audio and image files from XML
+  useEffect(() => {
+    if (!xmlText) {
+      setReferencedAudioFiles([]);
+      setReferencedImageFiles([]);
+      return;
+    }
+    const { audioFiles, imageFiles } = extractReferencedFilesFromXml(xmlText);
+    setReferencedAudioFiles(audioFiles);
+    setReferencedImageFiles(imageFiles);
+  }, [xmlText]);
 
   useEffect(() => {
     const onStorage = () => {
-      setUploadedAudioMap(loadStoredAudioMap());
-      setUploadedImageMap(loadStoredImageMap());
+      // Audio/Image maps don't sync from storage (use memory only)
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -91,12 +115,13 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     if (!files.length) return;
     const nextMap = { ...uploadedAudioMap };
     for (const file of files) {
-      const dataUrl = await readAsDataUrl(file);
       const stem = file.name.replace(/\.[^.]+$/, '');
-      nextMap[stem] = dataUrl;
+      // Use object URL instead of data URL to avoid localStorage size limits
+      const objectUrl = URL.createObjectURL(file);
+      nextMap[stem] = objectUrl;
     }
     setUploadedAudioMap(nextMap);
-    saveStoredAudioMap(nextMap);
+    // Don't save object URLs to localStorage (they can't persist across page reloads)
     event.target.value = '';
   }
 
@@ -105,19 +130,19 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     if (!files.length) return;
     const nextMap = { ...uploadedImageMap };
     for (const file of files) {
-      const dataUrl = await readAsDataUrl(file);
-      Object.assign(nextMap, buildImageAliases(file.name, dataUrl));
+      // Use object URL instead of data URL to avoid localStorage size limits
+      const objectUrl = URL.createObjectURL(file);
+      Object.assign(nextMap, buildImageAliases(file.name, objectUrl));
     }
     setUploadedImageMap(nextMap);
-    saveStoredImageMap(nextMap);
+    // Don't save object URLs to localStorage (they can't persist across page reloads)
     event.target.value = '';
   }
 
   function resetUploads() {
     setUploadedAudioMap({});
     setUploadedImageMap({});
-    saveStoredAudioMap({});
-    saveStoredImageMap({});
+    // Audio/Image maps are memory-only now (no localStorage to clear)
   }
 
   function handleLogout() {
@@ -163,7 +188,33 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
             <input type="file" accept="audio/*" multiple onChange={handleAudioUpload} />
           </label>
           <p className="helper-text">ระบบจะ map อัตโนมัติตามชื่อไฟล์ เช่น <code>hot_news.wav</code> → key <code>hot_news</code></p>
+          
           <div className="manifest-count">Mapped audio keys: {Object.keys(uploadedAudioMap).length}</div>
+          {Object.keys(uploadedAudioMap).length > 0 && (
+            <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(100, 200, 150, 0.1)', borderRadius: '4px' }}>
+              <p style={{ margin: '0 0 6px', fontSize: '0.85rem', fontWeight: '500', color: '#4CAF50' }}>✅ Uploaded:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {Object.keys(uploadedAudioMap).map((key) => (
+                  <span key={key} style={{ background: 'rgba(76, 175, 80, 0.2)', padding: '4px 8px', borderRadius: '3px', fontSize: '0.8rem', border: '1px solid rgba(76, 175, 80, 0.4)' }}>
+                    🎵 {key}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {referencedAudioFiles.length > 0 && (
+            <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(30, 165, 141, 0.1)', borderRadius: '8px' }}>
+              <p style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: '500', color: '#1ea58d' }}>📂 Reference in XML:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {referencedAudioFiles.map((f) => (
+                  <span key={f} style={{ background: 'rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.85rem', border: '1px solid rgba(30, 165, 141, 0.3)' }}>
+                    🔊 {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="control-section">
@@ -174,6 +225,19 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
           </label>
           <p className="helper-text">รูปที่อัปโหลดจะถูก resolve ตามชื่อไฟล์และ alias ใน renderer</p>
           <div className="manifest-count">Mapped image keys: {Object.keys(uploadedImageMap).length}</div>
+          
+          {referencedImageFiles.length > 0 && (
+            <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(30, 165, 141, 0.1)', borderRadius: '8px' }}>
+              <p style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: '500', color: '#1ea58d' }}>📂 Reference in XML:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {referencedImageFiles.map((f) => (
+                  <span key={f} style={{ background: 'rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.85rem', border: '1px solid rgba(30, 165, 141, 0.3)' }}>
+                    📸 {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="control-section small-text">
@@ -192,11 +256,12 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         </div>
       </aside>
 
-      <JournalineViewer
+      <div>
+        <JournalineViewer
         xmlText={xmlText}
         sourceLabel={sourceLabel}
         audioMap={mergedAudioMap}
-        imageMap={uploadedImageMap}
+        imageMap={mergedImageMap}
         status={status}
         error={error}
         headerTitle="Journaline Admin Preview"
@@ -205,15 +270,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         serviceNote="The viewer below uses the same XML rendering style as journaline-reader-ui-audio."
         emptyMessage="Upload or open an XML file to preview the rendered Journaline pages."
       />
+      </div>
     </div>
   );
-}
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error(`Unable to read ${file.name}`));
-    reader.readAsDataURL(file);
-  });
 }

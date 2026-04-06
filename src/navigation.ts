@@ -28,7 +28,17 @@ export function resolvePage(doc: JournalineDocument, pageId: string): ResolvedPa
     cursor = cursor.parentId ? doc.pages[cursor.parentId] : undefined;
   }
 
-  const siblingIds = page.siblingIds?.filter((id) => !id.includes('__pending')) ?? [];
+  // If page has no siblingIds, calculate from parent's children
+  let siblingIds = page.siblingIds?.filter((id) => !id.includes('__pending')) ?? [];
+  
+  if (siblingIds.length === 0 && page.parentId) {
+    const parent = doc.pages[page.parentId];
+    if (parent && parent.kind === 'menu' && parent.menuItems) {
+      // Get sibling IDs from parent menu items
+      siblingIds = parent.menuItems.map(item => item.targetId);
+    }
+  }
+  
   const currentIndex = siblingIds.indexOf(page.id);
 
   return {

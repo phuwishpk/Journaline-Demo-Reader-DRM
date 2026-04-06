@@ -317,6 +317,81 @@ app.delete('/api/delete-xml', authenticateToken, authorizeAdmin, (req, res) => {
   }
 });
 
+// ============= MEDIA ENDPOINTS (for MediaMapper) =============
+
+// Get list of audio and image files
+app.get('/api/media/list', (req, res) => {
+  try {
+    const audioDir = path.join(__dirname, 'public', 'audio');
+    const imageDir = path.join(__dirname, 'public', 'images');
+    
+    console.log('📂 API /api/media/list called');
+    console.log('   audioDir:', audioDir, 'exists:', fs.existsSync(audioDir));
+    console.log('   imageDir:', imageDir, 'exists:', fs.existsSync(imageDir));
+    
+    let audioFiles = [];
+    let imageFiles = [];
+
+    // Read audio files
+    if (fs.existsSync(audioDir)) {
+      const files = fs.readdirSync(audioDir);
+      audioFiles = files
+        .filter(f => {
+          const ext = path.extname(f).toLowerCase();
+          return ['.mp3', '.wav', '.m4a', '.ogg'].includes(ext);
+        })
+        .map(f => ({
+          name: f,
+          stem: path.basename(f, path.extname(f)),
+          type: 'audio',
+          url: `/audio/${f}`
+        }));
+    }
+
+    // Read image files recursively
+    function scanImageDir(dir, prefix = '') {
+      const items = [];
+      const files = fs.readdirSync(dir);
+      
+      for (const f of files) {
+        const fullPath = path.join(dir, f);
+        const stat = fs.statSync(fullPath);
+        
+        if (stat.isDirectory()) {
+          // Recurse into subdirectories
+          items.push(...scanImageDir(fullPath, prefix ? `${prefix}/${f}` : f));
+        } else {
+          const ext = path.extname(f).toLowerCase();
+          if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+            items.push({
+              name: f,
+              stem: path.basename(f, path.extname(f)),
+              type: 'image',
+              folder: prefix,
+              url: `/images/${prefix ? prefix + '/' : ''}${f}`
+            });
+          }
+        }
+      }
+      
+      return items;
+    }
+
+    if (fs.existsSync(imageDir)) {
+      imageFiles = scanImageDir(imageDir);
+    }
+
+    res.json({
+      success: true,
+      audio: audioFiles,
+      images: imageFiles
+    });
+  } catch (err) {
+    console.error('Media list error:', err);
+    res.status(500).json({ error: 'Failed to list media files' });
+  }
+});
+
 // Validate XML against Journaline.xsd
 app.post('/api/validate-xml', (req, res) => {
   try {

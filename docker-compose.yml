@@ -18,8 +18,10 @@ services:
       - ADMIN_PASSWORD=admin123
     # Mount entire project for hot reload in Vite
     volumes:
-      - .:/app
-      - /app/node_modules  # Prevent node_modules from being overwritten by host bind mount
+      - ./src:/app/src              # Frontend source
+      - ./public:/app/public        # ✨ สำหรับ audio/images files
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
     depends_on:
       mongo:
         condition: service_healthy
