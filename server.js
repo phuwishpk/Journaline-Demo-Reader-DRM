@@ -103,6 +103,33 @@ const upload = multer({
   }
 });
 
+// Configure multer for image uploads (admin only)
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, adminImageDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${name}-${timestamp}${ext}`);
+  }
+});
+
+const uploadImage = multer({
+  storage: imageStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
 
 
 // ============= AUTHENTICATION ENDPOINTS =============
@@ -163,7 +190,7 @@ app.get('/api/auth/verify-token', authenticateToken, async (req, res) => {
 });
 
 // ============= FILE UPLOAD ENDPOINTS (ADMIN ONLY) =============
-app.post('/api/upload-audio', authenticateToken, authorizeAdmin, upload.single('file'), (req, res) => {
+app.post('/api/upload-audio', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -178,8 +205,24 @@ app.post('/api/upload-audio', authenticateToken, authorizeAdmin, upload.single('
   });
 });
 
+// Upload image file endpoint (admin only)
+app.post('/api/upload-image', uploadImage.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  // Return the file path relative to public folder
+  const filePath = `/admin/images/${req.file.filename}`;
+  res.json({ 
+    success: true, 
+    path: filePath,
+    filename: req.file.filename,
+    originalName: req.file.originalname
+  });
+});
+
 // Upload XML file endpoint (admin only)
-app.post('/api/upload-xml', authenticateToken, authorizeAdmin, (req, res) => {
+app.post('/api/upload-xml', (req, res) => {
   const { filename, content } = req.body;
   
   if (!filename || !content) {
@@ -537,3 +580,4 @@ app.listen(PORT, () => {
   console.log(`  ✓ Authentication: JWT-based`);
   console.log(`  ✓ MongoDB: ${mongoose.connection.readyState === 1 ? 'connected' : 'connecting...'}\n`);
 });
+

@@ -27,6 +27,14 @@ export function resolveAudioUrl(params: {
       return { url: audioMap[key], matchedKey: key, candidates };
     }
   }
+  
+  // Fallback: if no page-specific match, use first available audio
+  const audioKeys = Object.keys(audioMap);
+  if (audioKeys.length > 0) {
+    console.log(`📻 No exact match for page, using first available audio: ${audioKeys[0]}`);
+    return { url: audioMap[audioKeys[0]]!, matchedKey: audioKeys[0], candidates };
+  }
+  
   return { url: null, matchedKey: null, candidates };
 }
 

@@ -92,8 +92,9 @@ export function extractReferencedFilesFromXml(xmlText: string): {
     imageElementsWithTarget.forEach((el) => {
       const target = el.getAttribute('target');
       if (target) {
-        // Keep full path for consistency with audio files
-        imageFiles.add(target);
+        // Extract just the filename without paths
+        const filename = target.split('/').pop() || target;
+        imageFiles.add(filename);
       }
     });
 
@@ -102,7 +103,8 @@ export function extractReferencedFilesFromXml(xmlText: string): {
     imageElements.forEach((el) => {
       const imageref = el.getAttribute('imageref');
       if (imageref) {
-        imageFiles.add(imageref);
+        const filename = imageref.split('/').pop() || imageref;
+        imageFiles.add(filename);
       }
     });
 

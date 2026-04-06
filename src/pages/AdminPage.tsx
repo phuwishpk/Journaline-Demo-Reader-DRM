@@ -13,6 +13,8 @@ import {
   saveStoredAudioMap,
   saveStoredImageMap,
   saveStoredXml,
+  saveMediaAssignmentForXml,
+  loadMediaAssignmentForXml,
 } from '../storage';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -39,7 +41,10 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
       void loadSample(SAMPLE_FILES[0].path, SAMPLE_FILES[0].label);
     }
     void loadAudioMap().then(setBaseAudioMap);
-    // Audio/Image maps don't persist across page reloads anymore (use memory only)
+    
+    // Load uploaded audio/image maps from localStorage (persist across reloads)
+    setUploadedAudioMap(loadStoredAudioMap());
+    setUploadedImageMap(loadStoredImageMap());
   }, []);
 
   const mergedAudioMap = useMemo(() => ({ ...baseAudioMap, ...uploadedAudioMap }), [baseAudioMap, uploadedAudioMap]);
@@ -104,13 +109,55 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     fetchMatchingMedia();
   }, [sourceLabel]);
 
+  // Load saved media assignment for the opened XML file
   useEffect(() => {
-    const onStorage = () => {
-      // Audio/Image maps don't sync from storage (use memory only)
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+    // Reset uploaded maps when switching XML files
+    setUploadedAudioMap({});
+    setUploadedImageMap({});
+    
+    if (!sourceLabel) return;
+    
+    const xmlStem = sourceLabel.replace(/\.[^.]+$/, '');
+    const assignment = loadMediaAssignmentForXml(xmlStem);
+    
+    if (assignment.audioFiles.length > 0 || assignment.imageFiles.length > 0) {
+      console.log(`📥 Loaded media assignment for ${xmlStem}:`, assignment);
+      
+      // Load audio files from /public/audio/
+      if (assignment.audioFiles.length > 0) {
+        const newAudioMap: AudioMap = {};
+        for (const filename of assignment.audioFiles) {
+          const audioUrl = `/audio/${filename}`;
+          const stem = filename.replace(/\.[^.]+$/, '');
+          newAudioMap[stem] = audioUrl;
+          console.log(`  📻 Added audio: ${stem} → ${audioUrl}`);
+        }
+        setUploadedAudioMap(newAudioMap);
+      }
+      
+      // Load image files from /public/images/
+      if (assignment.imageFiles.length > 0) {
+        const newImageMap: ImageMap = {};
+        for (const filename of assignment.imageFiles) {
+          const imageUrl = `/images/${filename}`;
+          newImageMap[filename] = imageUrl;
+          console.log(`  🖼️  Added image: ${filename} → ${imageUrl}`);
+        }
+        setUploadedImageMap(newImageMap);
+      }
+      
+      // Also add to referenced files for display
+      setReferencedAudioFiles((prev) => {
+        const combined = new Set([...prev, ...assignment.audioFiles]);
+        return Array.from(combined).sort();
+      });
+      
+      setReferencedImageFiles((prev) => {
+        const combined = new Set([...prev, ...assignment.imageFiles]);
+        return Array.from(combined).sort();
+      });
+    }
+  }, [sourceLabel]);
 
   async function loadSample(path: string, label: string) {
     setStatus('loading');
@@ -151,41 +198,115 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
   async function handleAudioUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
+    
+    setStatus('loading');
     const nextMap = { ...uploadedAudioMap };
+    
     for (const file of files) {
-      const stem = file.name.replace(/\.[^.]+$/, '');
-      // Use object URL instead of data URL to avoid localStorage size limits
-      const objectUrl = URL.createObjectURL(file);
-      nextMap[stem] = objectUrl;
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/upload-audio', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        
+        const data = await response.json();
+        console.log(`📻 Uploaded audio: ${file.name} → ${data.path}`);
+        
+        // Store using filename stem as key
+        const stem = file.name.replace(/\.[^.]+$/, '');
+        nextMap[stem] = data.path; // Use server path instead of Object URL
+      } catch (err) {
+        console.error(`❌ Failed to upload ${file.name}:`, err);
+        setError(`Failed to upload ${file.name}`);
+      }
     }
+    
     setUploadedAudioMap(nextMap);
-    // Don't save object URLs to localStorage (they can't persist across page reloads)
+    // Save to localStorage so it persists
+    saveStoredAudioMap(nextMap);
+    setStatus('ready');
     event.target.value = '';
   }
 
   async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
+    
+    setStatus('loading');
     const nextMap = { ...uploadedImageMap };
+    
     for (const file of files) {
-      // Use object URL instead of data URL to avoid localStorage size limits
-      const objectUrl = URL.createObjectURL(file);
-      Object.assign(nextMap, buildImageAliases(file.name, objectUrl));
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        
+        const data = await response.json();
+        console.log(`📸 Uploaded image: ${file.name} → ${data.path}`);
+        
+        // Use buildImageAliases to create mappings from server path
+        Object.assign(nextMap, buildImageAliases(file.name, data.path));
+      } catch (err) {
+        console.error(`❌ Failed to upload ${file.name}:`, err);
+        setError(`Failed to upload ${file.name}`);
+      }
     }
+    
     setUploadedImageMap(nextMap);
-    // Don't save object URLs to localStorage (they can't persist across page reloads)
+    // Save to localStorage so it persists
+    saveStoredImageMap(nextMap);
+    setStatus('ready');
     event.target.value = '';
   }
 
   function resetUploads() {
     setUploadedAudioMap({});
     setUploadedImageMap({});
-    // Audio/Image maps are memory-only now (no localStorage to clear)
+    // Clear saved uploads from localStorage
+    saveStoredAudioMap({});
+    saveStoredImageMap({});
   }
 
   function handleLogout() {
     logout();
     onNavigatePublic();
+  }
+
+  function handleSaveMediaAssignment() {
+    if (!sourceLabel) {
+      alert('Please load an XML file first');
+      return;
+    }
+
+    const xmlStem = sourceLabel.replace(/\.[^.]+$/, '');
+    
+    // Use referenced files if available (from XML + API match)
+    // Otherwise use uploaded stems
+    const audioFilenames = referencedAudioFiles.length > 0 
+      ? referencedAudioFiles 
+      : Object.keys(uploadedAudioMap).map(stem => `${stem}.mp3`);
+
+    const imageFilenames = referencedImageFiles.length > 0
+      ? referencedImageFiles
+      : Object.keys(uploadedImageMap).filter(key => 
+          !key.includes('localfile') && !key.startsWith('data:') && !key.startsWith('images/')
+        );
+
+    // Save assignment
+    saveMediaAssignmentForXml(xmlStem, audioFilenames, imageFilenames);
+    
+    alert(`✅ Saved media assignment for ${sourceLabel}\n\nAudio: ${audioFilenames.length} files\nImages: ${imageFilenames.length} files`);
   }
 
   return (
@@ -288,6 +409,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         </div>
 
         <div className="control-section button-stack">
+          <button className="primary-button" onClick={handleSaveMediaAssignment}>💾 Save Media Assignment</button>
           <button className="secondary-button" onClick={resetUploads}>Clear uploaded media</button>
           <button className="ghost-button" onClick={onNavigatePublic}>Open Public Page</button>
           <button className="ghost-button" onClick={handleLogout}>Logout</button>
@@ -312,3 +434,5 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     </div>
   );
 }
+
+
