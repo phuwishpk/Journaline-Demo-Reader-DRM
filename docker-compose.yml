@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Node.js Application (Express + Vite)
+  app:
+    build: .
+    container_name: journaline-app
+    ports:
+      - "5173:5173"  # Vite dev server (frontend)
+      - "5001:5001"  # Express server (backend API)
+    environment:
+      # MongoDB connection - use service name 'mongo' for Docker DNS
+      - MONGODB_URI=mongodb://mongo:27017/journaline-reader
+      - NODE_ENV=development
+      - JWT_SECRET=dev-secret-change-in-production
+      - PORT=5001
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    # Mount entire project for hot reload in Vite
+    volumes:
+      - .:/app
+      - /app/node_modules  # Prevent node_modules from being overwritten by host bind mount
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - journaline-network
+    restart: unless-stopped
+
+  # MongoDB Database
+  mongo:
+    image: mongo:latest
+    container_name: journaline-mongo
+    ports:
+      - "27017:27017"  # MongoDB port (accessible from localhost)
+    environment:
+      # No authentication for development
+      MONGO_INITDB_DATABASE: journaline-reader
+    volumes:
+      # Named volume for MongoDB data persistence
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    healthcheck:
+      test: echo 'db.adminCommand("ping")' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - journaline-network
+    restart: unless-stopped
+
+# Named volumes for data persistence
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local
+
+# Custom network for service discovery
+networks:
+  journaline-network:
+    driver: bridge

@@ -8,7 +8,62 @@
 
 ---
 
-## ⚡ วิธีที่ 1: Run ทีเดียว (แนะนำ)
+## 🐳 วิธีที่ 1: Run ด้วย Docker (แนะนำ)
+
+### ข้อกำหนด:
+- Docker Desktop ติดตั้งแล้ว ([Download](https://www.docker.com/products/docker-desktop))
+- โปรเจคอยู่ใน directory จริง (ไม่ใช่ WSL path บน Windows)
+
+### Quick Start:
+```bash
+# Build และ Start containers (ครั้งแรก)
+npm run docker:up
+```
+
+**ผลลัพธ์:**
+- ✅ Express Server: http://localhost:5001
+- ✅ Vite Frontend: http://localhost:5173
+- ✅ MongoDB: localhost:27017 (สำหรับ local tools)
+
+### คำสั่งอื่นๆ:
+
+**ดูข้อมูล logs:**
+```bash
+npm run docker:logs
+```
+
+**หยุด containers:**
+```bash
+npm run docker:down
+```
+
+**ลบ containers และ MongoDB data:**
+```bash
+npm run docker:clean
+```
+
+**Build image ใหม่:**
+```bash
+npm run docker:build
+```
+
+### Features:
+- ✅ **Hot Reload**: แก้ไข code → auto-reload ใน browser (Vite HMR)
+- ✅ **MongoDB Persistent**: Data ไม่หายเมื่อ restart containers
+- ✅ **Easy Development**: ไม่ต้อง install Node.js/MongoDB locally
+- ✅ **Team Friendly**: ทุกคน run เหมือนกัน (ไม่ว่า OS ไหน)
+
+### Troubleshooting Docker:
+| ปัญหา | วิธีแก้ |
+|-------|--------|
+| Port 5001/5173 ถูกใช้งาน | `docker-compose down; npm run docker:up` |
+| MongoDB ไม่เชื่อมต่อ | `docker-compose logs mongo` และ รอ 40 วินาที |
+| Changes ไม่ reflect | ตรวจสอบ volumes ใน docker-compose.yml |
+| Image เก่า | `docker-compose build --no-cache` |
+
+---
+
+## ⚡ วิธีที่ 2: Run ทีเดียว (Local - No Docker)
 
 ```bash
 npm start
@@ -21,7 +76,7 @@ npm start
 
 ---
 
-## 🔄 วิธีที่ 2: Run แยก 2 Terminals
+## 🔄 วิธีที่ 3: Run แยก 2 Terminals (Local - No Docker)
 
 ### **Terminal 1: Express Server (API)**
 ```bash
