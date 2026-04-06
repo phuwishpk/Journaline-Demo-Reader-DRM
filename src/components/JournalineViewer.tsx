@@ -138,6 +138,14 @@ function Toolbar({
   const previousTitle = previousPage ? inlineToPlainText(previousPage.title) : null;
   const nextTitle = nextPage ? inlineToPlainText(nextPage.title) : null;
 
+  // Debug log
+  console.log('Toolbar Debug:', { 
+    hasNextPage: !!nextPage, 
+    hasPrevPage: !!previousPage, 
+    nextTitle, 
+    previousTitle 
+  });
+
   return (
     <div className="mini-toolbar">
       <button 
