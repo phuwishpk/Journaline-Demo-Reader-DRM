@@ -109,17 +109,6 @@ export default function JournalineViewer({
           />
 
           <PageView page={resolved.page} onNavigate={navigateTo} imageMap={imageMap} doc={doc || undefined} />
-
-          <footer className="bottom-nav">
-            <button className="nav-card" disabled={!resolved.nextId} onClick={() => navigateTo(resolved.nextId)}>
-              ➜ Next Page
-              <span>{resolved.nextId && doc ? pageLabel(doc, resolved.nextId) : 'No next page'}</span>
-            </button>
-            <button className="nav-card" disabled={!resolved.previousId} onClick={() => navigateTo(resolved.previousId)}>
-              ⬅ Previous Page
-              <span>{resolved.previousId && doc ? pageLabel(doc, resolved.previousId) : 'No previous page'}</span>
-            </button>
-          </footer>
         </section>
       ) : (
         <section className="empty-state">
@@ -153,7 +142,6 @@ function Toolbar({
     <div className="mini-toolbar">
       <button 
         onClick={onPrev}
-        disabled={!previousPage}
         title={previousTitle || undefined}
       >
         {previousTitle ? `◀ Previous Page (${previousTitle})` : '◀ previous'}
@@ -161,7 +149,6 @@ function Toolbar({
       <button onClick={onUp}>↑ up</button>
       <button 
         onClick={onNext}
-        disabled={!nextPage}
         title={nextTitle || undefined}
       >
         {nextTitle ? `Next Page (${nextTitle}) ▶` : 'next ▶'}

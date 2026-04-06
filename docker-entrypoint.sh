@@ -3,10 +3,13 @@
 
 echo "🚀 Starting Journaline Reader App..."
 
-# Install concurrently if not already installed
-npm list concurrently >/dev/null 2>&1 || npm install concurrently
+# Build frontend first
+echo "Building frontend..."
+npm run build
 
 # Run Express server and Vite dev server concurrently
 exec npx concurrently \
+  --names "EXPRESS,VITE" \
+  --prefix "[{name}]" \
   "node server.js" \
-  "vite"
+  "vite --host 0.0.0.0"
