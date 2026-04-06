@@ -392,6 +392,91 @@ app.get('/api/media/list', (req, res) => {
   }
 });
 
+// Get audio/image files that match XML filename
+app.get('/api/media/by-xmlname', (req, res) => {
+  try {
+    const xmlName = req.query.name;
+    if (!xmlName) {
+      return res.status(400).json({ error: 'Missing name parameter' });
+    }
+
+    const audioDir = path.join(__dirname, 'public', 'audio');
+    const imageDir = path.join(__dirname, 'public', 'images');
+    
+    console.log('🔍 API /api/media/by-xmlname called with:', xmlName);
+    
+    let audioFiles = [];
+    let imageFiles = [];
+
+    // Read audio files that match xmlName
+    if (fs.existsSync(audioDir)) {
+      const files = fs.readdirSync(audioDir);
+      audioFiles = files
+        .filter(f => {
+          const ext = path.extname(f).toLowerCase();
+          const matchesExt = ['.mp3', '.wav', '.m4a', '.ogg'].includes(ext);
+          const stem = path.basename(f, ext).toLowerCase();
+          const xmlNameLower = xmlName.toLowerCase();
+          // Match if stem equals xmlName or starts with xmlName_
+          const matches = stem === xmlNameLower || stem.startsWith(xmlNameLower + '_');
+          return matchesExt && matches;
+        })
+        .map(f => ({
+          name: f,
+          stem: path.basename(f, path.extname(f)),
+          type: 'audio',
+          url: `/audio/${f}`
+        }));
+    }
+
+    // Read image files that match xmlName
+    function scanImageDirByName(dir, xmlNameLower, prefix = '') {
+      const items = [];
+      const files = fs.readdirSync(dir);
+      
+      for (const f of files) {
+        const fullPath = path.join(dir, f);
+        const stat = fs.statSync(fullPath);
+        
+        if (stat.isDirectory()) {
+          items.push(...scanImageDirByName(fullPath, xmlNameLower, prefix ? `${prefix}/${f}` : f));
+        } else {
+          const ext = path.extname(f).toLowerCase();
+          if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+            const stem = path.basename(f, ext).toLowerCase();
+            // Match if stem equals xmlName or starts with xmlName_
+            if (stem === xmlNameLower || stem.startsWith(xmlNameLower + '_')) {
+              items.push({
+                name: f,
+                stem: path.basename(f, ext),
+                type: 'image',
+                folder: prefix,
+                url: `/images/${prefix ? prefix + '/' : ''}${f}`
+              });
+            }
+          }
+        }
+      }
+      return items;
+    }
+
+    if (fs.existsSync(imageDir)) {
+      imageFiles = scanImageDirByName(imageDir, xmlName.toLowerCase());
+    }
+
+    console.log(`  Found ${audioFiles.length} audio files, ${imageFiles.length} image files`);
+
+    res.json({
+      success: true,
+      audio: audioFiles,
+      images: imageFiles
+    });
+  } catch (err) {
+    console.error('Media by name error:', err);
+    res.status(500).json({ error: 'Failed to fetch media files by XML name' });
+  }
+});
+
 // Validate XML against Journaline.xsd
 app.post('/api/validate-xml', (req, res) => {
   try {

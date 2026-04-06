@@ -66,6 +66,44 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     setReferencedImageFiles(imageFiles);
   }, [xmlText]);
 
+  // Fetch media files that match the loaded XML filename
+  useEffect(() => {
+    if (!sourceLabel) return;
+    
+    // Extract stem from sourceLabel (e.g., "root_pythagoras_th.xml" -> "root_pythagoras_th")
+    const xmlStem = sourceLabel.replace(/\.[^.]+$/, '');
+    
+    const fetchMatchingMedia = async () => {
+      try {
+        const response = await fetch(`/api/media/by-xmlname?name=${encodeURIComponent(xmlStem)}`);
+        if (!response.ok) throw new Error('Failed to fetch media');
+        const data = await response.json();
+        
+        // If we found matching audio/image files, merge them with referenced files
+        if (data.audio?.length > 0) {
+          const matchingAudioStems = data.audio.map((a: any) => a.stem);
+          setReferencedAudioFiles((prev) => {
+            const combined = new Set([...prev, ...matchingAudioStems]);
+            return Array.from(combined).sort();
+          });
+        }
+        
+        if (data.images?.length > 0) {
+          const matchingImageStems = data.images.map((img: any) => img.name);
+          setReferencedImageFiles((prev) => {
+            const combined = new Set([...prev, ...matchingImageStems]);
+            return Array.from(combined).sort();
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching matching media:', err);
+        // Silently fail - still show XML-referenced files
+      }
+    };
+    
+    fetchMatchingMedia();
+  }, [sourceLabel]);
+
   useEffect(() => {
     const onStorage = () => {
       // Audio/Image maps don't sync from storage (use memory only)

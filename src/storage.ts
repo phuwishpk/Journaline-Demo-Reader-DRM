@@ -6,6 +6,11 @@ const XML_LABEL_KEY = 'jr_admin_source_label';
 const AUDIO_MAP_KEY = 'jr_admin_audio_map';
 const IMAGE_MAP_KEY = 'jr_admin_image_map';
 
+export interface MediaAssignment {
+  audioFiles: string[];
+  imageFiles: string[];
+}
+
 export function loadStoredXml() {
   return {
     xmlText: localStorage.getItem(XML_TEXT_KEY) || '',
@@ -32,6 +37,19 @@ export function loadStoredImageMap(): ImageMap {
 
 export function saveStoredImageMap(map: ImageMap) {
   localStorage.setItem(IMAGE_MAP_KEY, JSON.stringify(map));
+}
+
+// Save media assignment for a specific XML file
+export function saveMediaAssignmentForXml(xmlStem: string, audioFiles: string[], imageFiles: string[]) {
+  const key = `jr_media_assignment_${xmlStem}`;
+  const assignment: MediaAssignment = { audioFiles, imageFiles };
+  localStorage.setItem(key, JSON.stringify(assignment));
+}
+
+// Load media assignment for a specific XML file
+export function loadMediaAssignmentForXml(xmlStem: string): MediaAssignment {
+  const key = `jr_media_assignment_${xmlStem}`;
+  return parseJson<MediaAssignment>(localStorage.getItem(key), { audioFiles: [], imageFiles: [] });
 }
 
 function parseJson<T>(raw: string | null, fallback: T): T {
