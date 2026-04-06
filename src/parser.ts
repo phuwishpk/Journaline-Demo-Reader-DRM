@@ -302,8 +302,25 @@ function parseSingleNode(node: ChildNode, macros: MacroMap): InlineNode[] {
     case 'image': {
       const target = el.getAttribute('target') || '';
       const type = el.getAttribute('type') || '';
-      if (type === 'url' && target) {
-        return [{ type: 'image', src: target, alt: textContentFromInline(parseInlineChildren(el, macros)) || undefined }];
+      const alt = textContentFromInline(parseInlineChildren(el, macros)) || undefined;
+      if (!target) {
+        return [{ type: 'unsupported', label: 'Unsupported image source: empty' }];
+      }
+      if (type === 'url') {
+        return [{ type: 'image', src: target, alt }];
+      }
+      if (type === 'embedded') {
+        if (target.startsWith('data:') && target.includes(';base64,')) {
+          return [{ type: 'image', src: target, alt }];
+        }
+        const marker = ';localfile,';
+        if (target.includes(marker)) {
+          const path = target.split(marker)[1] || '';
+          return [{ type: 'image', src: `localfile:${path}`, alt }];
+        }
+      }
+      if (type === 'local') {
+        return [{ type: 'image', src: `localfile:${target}`, alt }];
       }
       return [{ type: 'unsupported', label: `Unsupported image source: ${type || 'unknown'}` }];
     }

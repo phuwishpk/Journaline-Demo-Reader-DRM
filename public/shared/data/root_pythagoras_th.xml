@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journaline xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Journaline.xsd">
+
+  <fileinfo>
+    <description>ตัวอย่าง Journaline XML ภาษาไทย — บทเรียนพีทาโกรัส</description>
+    <version>1.0.0</version>
+    <author>OpenAI — แปลและจัดโครงสร้างจากภาพตัวอย่างที่ผู้ใช้อัปโหลด</author>
+    <note>ไฟล์นี้ออกแบบให้ใช้กับ UI แบบอ่าน Journaline XML ที่คง layout เดิมและเปลี่ยนเฉพาะข้อมูล</note>
+  </fileinfo>
+
+  <menu idString="drm_journaline_root" static="true">
+    <title>บริการ Journaline DRM</title>
+
+    <menuitem>
+      <itemlabel>วิทยุการศึกษา DRM</itemlabel>
+      <menu idString="drm_education_radio" static="true">
+        <title>วิทยุการศึกษา DRM</title>
+
+        <menuitem>
+          <itemlabel>ภาษาไทย</itemlabel>
+          <menu idString="thai_language" static="true">
+            <title>ภาษาไทย</title>
+
+            <menuitem>
+              <itemlabel>คณิตศาสตร์</itemlabel>
+              <menu idString="mathematics_section" static="true">
+                <title>คณิตศาสตร์</title>
+
+                <menuitem>
+                  <itemlabel>เรขาคณิต</itemlabel>
+                  <menu idString="geometry_section" static="true">
+                    <title>เรขาคณิต</title>
+
+                    <menuitem>
+                      <itemlabel>บทเรียนพีทาโกรัส</itemlabel>
+                      <menu idString="pythagoras_lesson_menu" static="true">
+                        <title>บทเรียนพีทาโกรัส</title>
+
+                        <menuitem>
+                          <itemlabel>คำนำ</itemlabel>
+                          <message idString="foreword" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#lesson_intro">หน้าถัดไป (บทนำ — บทเรียนวันนี้)</link>
+                              </links>
+                            </objectparameters>
+                            <title>คำนำ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>สวัสดี!</p>
+                                <p>บทเรียนวันนี้ถูกส่งมาถึงคุณผ่านวิทยุรูปแบบพิเศษชนิดหนึ่ง</p>
+                                <p>เครื่องส่งวิทยุอยู่ห่างออกไปหลายพันกิโลเมตรในสหราชอาณาจักร ด้วยคลื่นวิทยุความถี่สูง สัญญาณสามารถเดินทางได้ไกลเพื่อมาถึงคุณ คลื่นความถี่สูงถูกใช้ในการกระจายเสียงวิทยุมานานแล้ว แต่ปัจจุบันมีเทคโนโลยีใหม่ที่เรียกว่า <b>Digital Radio Mondiale (DRM)</b></p>
+                                <p>DRM คือวิทยุดิจิทัล ช่วยให้ผู้กระจายเสียงส่งเสียงคุณภาพสูง เช่น เสียงพูดและดนตรี พร้อมข้อมูลหรือสารสนเทศเพิ่มเติม ข้อมูลเหล่านี้อาจเป็นภาพวาดหรือแผนภาพ เพื่อช่วยให้คุณเข้าใจเนื้อหาเสียงได้ดีขึ้น หรือเปิดทบทวนได้อีกในภายหลัง</p>
+                                <p>นอกจากนี้ ยังสามารถส่งการบ้านและเอกสารเสริมได้ด้วย — และรองรับได้หลายภาษา</p>
+                                <p>วันนี้เราจะใช้ข้อมูลเพิ่มเติมนี้เพื่อสาธิตบทเรียนคณิตศาสตร์อย่างง่าย ซึ่งเกี่ยวกับสามเหลี่ยมและรูปสี่เหลี่ยม — หวังว่าคุณจะสนุกกับบทเรียนนี้</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>บทนำ — บทเรียนวันนี้</itemlabel>
+                          <message idString="lesson_intro" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page1_right_triangle">หน้าถัดไป (หน้า 1 — สามเหลี่ยมมุมฉาก)</link>
+                                <link type="jml" target="#foreword">หน้าก่อนหน้า (คำนำ)</link>
+                              </links>
+                            </objectparameters>
+                            <title>บทนำ — บทเรียนวันนี้</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>บทเรียนวันนี้เกี่ยวกับ <b>รูปหลายเหลี่ยม</b> หรือรูปทรงที่มีหลายด้าน ตัวอย่างที่ง่ายที่สุดสองชนิดคือ <b>สามเหลี่ยม</b> ซึ่งมี 3 ด้าน และ <b>รูปสี่เหลี่ยม</b> ซึ่งมี 4 ด้าน</p>
+                                <p>เราจะมาศึกษาสามเหลี่ยมและรูปสี่เหลี่ยม เพื่อทำความเข้าใจความสัมพันธ์ระหว่างความยาวของด้านต่าง ๆ และมุมที่อยู่ระหว่างด้านเหล่านั้น</p>
+                                <p>สามเหลี่ยมนั้นน่าสนใจเป็นพิเศษ เพราะมีสามเหลี่ยมหลายชนิดที่มีกฎเฉพาะเกี่ยวกับมุม และวิธีคำนวณความยาวด้าน</p>
+                                <p>เมื่อกว่า 2,000 ปีก่อน นักปรัชญา นักดาราศาสตร์ และนักคณิตศาสตร์ชาวกรีกที่ชื่อว่า <b>พีทาโกรัส</b> ค้นพบข้อเท็จจริงที่น่าสนใจและมีประโยชน์มากเกี่ยวกับสามเหลี่ยม ซึ่งจนถึงปัจจุบันยังถูกนำไปใช้ในชีวิตประจำวันและงานหลากหลายประเภท</p>
+                                <p>พีทาโกรัสค้นพบว่า มุมภายในของสามเหลี่ยมทุกอันรวมกันได้ 180° และยังพบอีกว่ามีสามเหลี่ยมบางชนิดที่มีคุณสมบัติพิเศษ ซึ่งเราจะค่อย ๆ ศึกษากันในบทเรียนนี้</p>
+                                <p>ชนิดแรกคือ <b>สามเหลี่ยมมุมฉาก</b> ซึ่งจะมีมุมหนึ่งเป็นมุมฉาก หรือ 90° เสมอ นั่นหมายความว่ามุมอีกสองมุมจะรวมกันได้ 90° เพราะผลรวมทั้งหมดต้องเท่ากับ 180°</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 1</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 1 — สามเหลี่ยมมุมฉาก</itemlabel>
+                          <message idString="page1_right_triangle" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page2_isosceles">หน้าถัดไป (หน้า 2 — สามเหลี่ยมหน้าจั่ว)</link>
+                                <link type="jml" target="#lesson_intro">หน้าก่อนหน้า (บทนำ — บทเรียนวันนี้)</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 1 — สามเหลี่ยมมุมฉาก</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>ตัวอย่างต่อไปนี้คือ <b>สามเหลี่ยมมุมฉาก</b></p>
+                                <image type="url" target="/images/pythagoras/page1_right_triangle.png">ภาพสามเหลี่ยมมุมฉาก</image>
+                                <p>มุมที่มุมล่างซ้ายมีขนาด 90° — แสดงด้วยสัญลักษณ์สี่เหลี่ยมเล็กที่มุม — เพราะนี่คือสามเหลี่ยมมุมฉาก ถ้ามุมอีกมุมหนึ่งมีค่า 60° มุมที่เหลือจะเป็นเท่าไร?</p>
+                                <p>เรารู้ว่ามุมภายในของสามเหลี่ยมรวมกันต้องเท่ากับ 180° ดังนั้นมุมที่หายไปต้องเป็น 30° เพราะ 90 + 60 + 30 = 180</p>
+                                <p>สามเหลี่ยมพิเศษอีกชนิดหนึ่งคือ <b>สามเหลี่ยมหน้าจั่ว</b> ซึ่งจะมีมุมสองมุมเท่ากันเสมอ</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 2</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 2 — สามเหลี่ยมหน้าจั่ว</itemlabel>
+                          <message idString="page2_isosceles" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page3_equilateral">หน้าถัดไป (หน้า 3 — สามเหลี่ยมด้านเท่า)</link>
+                                <link type="jml" target="#page1_right_triangle">หน้าก่อนหน้า (หน้า 1 — สามเหลี่ยมมุมฉาก)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 2 — สามเหลี่ยมหน้าจั่ว</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>นี่คือ <b>สามเหลี่ยมหน้าจั่ว</b> เนื่องจากสามเหลี่ยมชนิดนี้มีมุมสองมุมเท่ากันเสมอ การหามุมที่เหลือจึงทำได้ง่ายมาก เพราะผลรวมของมุมทั้งสามยังคงต้องเท่ากับ 180°</p>
+                                <image type="url" target="/images/pythagoras/page2_isosceles_triangle.png">ภาพสามเหลี่ยมหน้าจั่ว</image>
+                                <p>ในตัวอย่างนี้ มุมที่ฐานทั้งสองมุมมีค่า 75° เมื่อนำมาบวกกันจะได้ 150° ดังนั้นมุมด้านบนจึงต้องเป็น 30° เพราะมุมภายในของสามเหลี่ยมรวมกันเป็น 180° เสมอ ดังนั้น 75 + 75 + 30 = 180</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 3</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 3 — สามเหลี่ยมด้านเท่า</itemlabel>
+                          <message idString="page3_equilateral" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page4_scalene">หน้าถัดไป (หน้า 4 — สามเหลี่ยมด้านไม่เท่า)</link>
+                                <link type="jml" target="#page2_isosceles">หน้าก่อนหน้า (หน้า 2 — สามเหลี่ยมหน้าจั่ว)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 3 — สามเหลี่ยมด้านเท่า</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>มาดูสามเหลี่ยมพิเศษอีกชนิดหนึ่งกัน นั่นคือ <b>สามเหลี่ยมด้านเท่า</b></p>
+                                <image type="url" target="/images/pythagoras/page3_equilateral_triangle.png">ภาพสามเหลี่ยมด้านเท่า</image>
+                                <p>สามเหลี่ยมชนิดนี้คำนวณได้ง่ายที่สุด เพราะมุมทั้งสามมุมมีค่า 60° เท่ากันทั้งหมด ดังนั้น 60 + 60 + 60 = 180</p>
+                                <p>ไม่เพียงเท่านั้น ในสามเหลี่ยมด้านเท่า ด้านทั้งสามยังยาวเท่ากันทั้งหมดด้วย แต่เรื่องการคำนวณความยาวด้านของสามเหลี่ยมแต่ละชนิด เราจะไปดูเพิ่มเติมในภายหลัง</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 4</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 4 — สามเหลี่ยมด้านไม่เท่า</itemlabel>
+                          <message idString="page4_scalene" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page5_quadrilateral">หน้าถัดไป (หน้า 5 — รูปสี่เหลี่ยม)</link>
+                                <link type="jml" target="#page3_equilateral">หน้าก่อนหน้า (หน้า 3 — สามเหลี่ยมด้านเท่า)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 4 — สามเหลี่ยมด้านไม่เท่า</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>สุดท้ายคือ <b>สามเหลี่ยมด้านไม่เท่า</b> แตกต่างจากสามเหลี่ยมชนิดอื่นที่เราได้ดูมาก่อนหน้านี้ เพราะมุมทั้งสามของสามเหลี่ยมด้านไม่เท่าจะมีค่าไม่เท่ากันทั้งหมด</p>
+                                <image type="url" target="/images/pythagoras/page4_scalene_triangle.png">ภาพสามเหลี่ยมด้านไม่เท่า</image>
+                                <p>แม้ว่ามุมทั้งสามจะต่างกัน แต่ผลรวมยังคงเท่ากับ 180° เช่นเดิม ดังนั้น 58 + 77 + 45 = 180</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 5</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 5 — รูปสี่เหลี่ยม</itemlabel>
+                          <message idString="page5_quadrilateral" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page6_irregular_quadrilateral">หน้าถัดไป (หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ)</link>
+                                <link type="jml" target="#page4_scalene">หน้าก่อนหน้า (หน้า 4 — สามเหลี่ยมด้านไม่เท่า)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 5 — รูปสี่เหลี่ยม</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>ตอนนี้เรามาดู <b>รูปสี่เหลี่ยม</b> กันบ้าง รูปประเภทนี้รวมถึงสี่เหลี่ยมจัตุรัสและสี่เหลี่ยมผืนผ้า ซึ่งมี 4 ด้าน และ 4 มุม มุมภายในทั้งหมดของรูปสี่เหลี่ยมรวมกันได้ 360°</p>
+                                <image type="url" target="/images/pythagoras/page5_quadrilateral.png">ภาพรูปสี่เหลี่ยม</image>
+                                <p>สำหรับสี่เหลี่ยมจัตุรัสหรือสี่เหลี่ยมผืนผ้า ซึ่งด้านตรงข้ามขนานกัน มุมแต่ละมุมจะเป็นมุมฉาก หรือ 90°</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 6</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ</itemlabel>
+                          <message idString="page6_irregular_quadrilateral" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page7_pythagorean_theorem">หน้าถัดไป (หน้า 7 — ทฤษฎีพีทาโกรัส)</link>
+                                <link type="jml" target="#page5_quadrilateral">หน้าก่อนหน้า (หน้า 5 — รูปสี่เหลี่ยม)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>นี่คือ <b>รูปสี่เหลี่ยมไม่สม่ำเสมอ</b> ซึ่งมุมทั้งหมดมีค่าไม่เท่ากัน แต่เช่นเดียวกับรูปสี่เหลี่ยมชนิดอื่น มุมภายในทั้งหมดของมันยังคงรวมกันได้ 360°</p>
+                                <image type="url" target="/images/pythagoras/page6_irregular_quadrilateral.png">ภาพรูปสี่เหลี่ยมไม่สม่ำเสมอ</image>
+                                <p>คุณสามารถตรวจสอบได้ด้วยตนเอง: 80 + 94 + 68 + 118 = 360</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 7</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 7 — ทฤษฎีพีทาโกรัส</itemlabel>
+                          <message idString="page7_pythagorean_theorem" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page8_345_triangle">หน้าถัดไป (หน้า 8 — สามเหลี่ยม 3,4,5)</link>
+                                <link type="jml" target="#page6_irregular_quadrilateral">หน้าก่อนหน้า (หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 7 — ทฤษฎีพีทาโกรัส</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>เมื่อเราได้ศึกษากฎของมุมในสามเหลี่ยมและรูปสี่เหลี่ยมแล้ว ต่อไปเราจะมาดูวิธีคำนวณความยาวด้านของมันกัน</p>
+                                <p>สามเหลี่ยมยังมีคุณสมบัติพิเศษอีกอย่างหนึ่งที่พีทาโกรัสค้นพบ ซึ่งกฎนี้เรียกว่า <b>ทฤษฎีพีทาโกรัส</b> ลองย้อนกลับไปดูสามเหลี่ยมมุมฉากอีกครั้ง</p>
+                                <image type="url" target="/images/pythagoras/page7_pythagorean_theorem.png">แผนภาพทฤษฎีพีทาโกรัส</image>
+                                <p>ด้านที่ยาวที่สุดของสามเหลี่ยม ซึ่งกำกับด้วยตัวอักษร <b>c</b> เรียกว่า <b>ด้านตรงข้ามมุมฉาก</b> หรือ Hypotenuse ด้านนี้จะยาวที่สุดเสมอ และอยู่ตรงข้ามกับมุมฉาก</p>
+                                <p>พีทาโกรัสค้นพบความสัมพันธ์ที่น่าสนใจมากเกี่ยวกับความยาวด้านของสามเหลี่ยมมุมฉาก เขาพบว่า ถ้าใช้ด้านตรงข้ามมุมฉากวาดเป็นรูปสี่เหลี่ยมจัตุรัสหนึ่งรูป พื้นที่ของสี่เหลี่ยมรูปนั้นจะเท่ากับผลรวมของพื้นที่สี่เหลี่ยมอีกสองรูปที่สร้างจากด้าน <b>a</b> และ <b>b</b></p>
+                                <p>พื้นที่ของรูปสี่เหลี่ยมจัตุรัสหาได้จากการนำความยาวด้านมาคูณกับตัวมันเอง ดังนั้นพื้นที่ของสี่เหลี่ยมที่สร้างจากด้าน <b>a</b> เขียนได้เป็น <b>a²</b> และพื้นที่ของสี่เหลี่ยมที่สร้างจากด้าน <b>b</b> เขียนได้เป็น <b>b²</b></p>
+                                <p>ทฤษฎีพีทาโกรัสกล่าวว่า พื้นที่ของสี่เหลี่ยมที่สร้างจากด้าน <b>c</b> เท่ากับพื้นที่ของสี่เหลี่ยมที่สร้างจากด้าน <b>a</b> บวกกับพื้นที่ของสี่เหลี่ยมที่สร้างจากด้าน <b>b</b></p>
+                                <p>เขียนเป็นสมการได้ว่า: <b>c² = a² + b²</b></p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 8</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 8 — สามเหลี่ยม 3,4,5</itemlabel>
+                          <message idString="page8_345_triangle" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page9_example_calculation">หน้าถัดไป (หน้า 9 — ตัวอย่างการคำนวณ)</link>
+                                <link type="jml" target="#page7_pythagorean_theorem">หน้าก่อนหน้า (หน้า 7 — ทฤษฎีพีทาโกรัส)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 8 — สามเหลี่ยม 3,4,5</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>พีทาโกรัสยังค้นพบกรณีพิเศษที่รู้จักกันในชื่อ <b>สามเหลี่ยม 3,4,5</b> สมมติว่าด้าน <b>a</b> มีความยาว 3 หน่วย และด้าน <b>b</b> มีความยาว 4 หน่วย</p>
+                                <image type="url" target="/images/pythagoras/page8_345_triangle.png">ภาพสามเหลี่ยม 3,4,5</image>
+                                <p>ตอนนี้เรารู้อยู่แล้วจากทฤษฎีพีทาโกรัสว่า พื้นที่ของสี่เหลี่ยมที่สร้างบนด้าน <b>c</b> เท่ากับพื้นที่ของสี่เหลี่ยมบนด้าน <b>a</b> บวกกับพื้นที่ของสี่เหลี่ยมบนด้าน <b>b</b></p>
+                                <p>โปรดไปยังหน้า 9 เพื่อดูตัวอย่างการคำนวณ</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 9 — ตัวอย่างการคำนวณ</itemlabel>
+                          <message idString="page9_example_calculation" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#last_page_goodbye">หน้าถัดไป (หน้าสุดท้าย — ลาก่อน)</link>
+                                <link type="jml" target="#page8_345_triangle">หน้าก่อนหน้า (หน้า 8 — สามเหลี่ยม 3,4,5)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 9 — ตัวอย่างการคำนวณ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>ลองใช้ตัวอย่างสามเหลี่ยม 3,4,5 เพื่อคำนวณหาด้าน <b>c</b> กัน โดยให้ <b>a = 3</b> และ <b>b = 4</b></p>
+                                <image type="url" target="/images/pythagoras/page8_345_triangle.png">ภาพตัวอย่างสามเหลี่ยม 3,4,5</image>
+                                <p>เริ่มจากสูตรของพีทาโกรัส: <b>c² = a² + b²</b></p>
+                                <p>แทนค่าลงไปจะได้: <b>c² = 3² + 4²</b></p>
+                                <p>จากนั้นคำนวณ: <b>c² = 9 + 16 = 25</b></p>
+                                <p>ดังนั้น <b>c = √25 = 5</b></p>
+                                <p>จึงสรุปได้ว่า ด้านตรงข้ามมุมฉากของตัวอย่างนี้ยาว <b>5 หน่วย</b></p>
+                                <p>เมื่อจบบทนี้แล้ว กรุณาไปยังหน้าสุดท้ายของบทเรียน</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้าสุดท้าย — ลาก่อน</itemlabel>
+                          <message idString="last_page_goodbye" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#homework_challenge">การบ้าน — โจทย์ท้าทายคณิตศาสตร์สำหรับคุณ</link>
+                                <link type="jml" target="#page9_example_calculation">หน้าก่อนหน้า (หน้า 9 — ตัวอย่างการคำนวณ)</link>
+                                <link type="jml" target="#page1_right_triangle">ฉันต้องการเริ่มบทเรียนใหม่ตั้งแต่ต้น (หน้า 1)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักสักครู่และอยากเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้าสุดท้าย — ลาก่อน</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>นี่คือจุดสิ้นสุดของบทเรียนวันนี้ เราหวังว่าคุณจะสนุกกับบทเรียน และตอนนี้คุณจะเข้าใจเรื่องสามเหลี่ยมและรูปสี่เหลี่ยมมากขึ้น รวมถึงวิธีหาค่ามุมและความยาวของด้านต่าง ๆ</p>
+                                <p>ลาก่อน แล้วพบกันใหม่ในครั้งหน้า!</p>
+                                <image type="url" target="/images/pythagoras/drm_logo.png">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>การบ้าน — โจทย์ท้าทายคณิตศาสตร์สำหรับคุณ</itemlabel>
+                          <message idString="homework_challenge" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#homework_challenge">ผลลัพธ์ที่ฉันคำนวณได้คือ 8</link>
+                                <link type="jml" target="#homework_answer">ผลลัพธ์ที่ฉันคำนวณได้คือ 10</link>
+                                <link type="jml" target="#homework_challenge">ผลลัพธ์ที่ฉันคำนวณได้คือ 12</link>
+                                <link type="jml" target="#homework_challenge">ผลลัพธ์ที่ฉันคำนวณได้คือ 14</link>
+                                <link type="jml" target="#homework_challenge">ผลลัพธ์ที่ฉันคำนวณได้ไม่อยู่ในรายการ</link>
+                                <link type="jml" target="#page1_right_triangle">ฉันยังไม่เข้าใจ — ฉันอยากเริ่มบทเรียนใหม่ตั้งแต่ต้น</link>
+                                <link type="jml" target="#homework_answer">ฉันยังไม่แน่ใจ — แสดงคำตอบที่ถูกต้องให้ฉัน</link>
+                              </links>
+                            </objectparameters>
+                            <title>การบ้าน — โจทย์ท้าทายคณิตศาสตร์สำหรับคุณ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>เยี่ยมมาก — คุณเรียนจบบทเรียนทั้งหมดแล้ว ต่อไปนี้เป็นโจทย์เล็ก ๆ ให้ลองทำด้วยตนเอง</p>
+                                <p>กำหนดให้สามเหลี่ยมต่อไปนี้มีด้านประกอบมุมฉากยาว <b>a = 6</b> และ <b>b = 8</b> แล้วด้านตรงข้ามมุมฉาก <b>x</b> จะมีค่าเท่าใด?</p>
+                                <image type="url" target="/images/pythagoras/homework_triangle.png">ภาพโจทย์การบ้าน</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>เฉลยการบ้าน — คำตอบโจทย์ท้าทาย</itemlabel>
+                          <message idString="homework_answer" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page1_right_triangle">ฉันยังอยากทบทวนบทเรียนอีกครั้ง</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากอ่านเอกสารเสริมเพื่อเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>การบ้าน — เฉลยโจทย์ท้าทายคณิตศาสตร์วันนี้</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p>ยอดเยี่ยม! คำตอบของคุณถูกต้อง ผลลัพธ์คือ <b>10</b> ลองมาดูวิธีทำทีละขั้นตอนกันอีกครั้ง</p>
+                                <p><b>คำถาม:</b> จงหาค่าของด้านตรงข้ามมุมฉาก <b>x</b> เมื่อกำหนดให้สามเหลี่ยมนี้มีด้านประกอบมุมฉากยาว <b>a = 6</b> และ <b>b = 8</b></p>
+                                <image type="url" target="/images/pythagoras/homework_answer_triangle.png">ภาพเฉลยโจทย์การบ้าน</image>
+                                <p><b>วิธีทำ:</b> แทนค่า 6 และ 8 ลงในสูตร จะได้ว่า <b>6² + 8² = x²</b></p>
+                                <p>ซึ่งเท่ากับ <b>36 + 64 = x²</b> หรือ <b>100 = x²</b></p>
+                                <p>ดังนั้นเราจึงเขียนได้ว่า <b>x = √100</b></p>
+                                <p>เพราะฉะนั้น <b>x = 10</b></p>
+                                <p>สรุปว่า ด้านตรงข้ามมุมฉากมีความยาว <b>10</b></p>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>ข้อมูลเพิ่มเติม: เกี่ยวกับพีทาโกรัส</itemlabel>
+                          <message idString="further_pythagoras" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page1_right_triangle">ฉันต้องการกลับไปเรียนบทเรียนตั้งแต่หน้า 1</link>
+                                <link type="jml" target="#homework_challenge">ไปยังหน้าโจทย์การบ้าน</link>
+                              </links>
+                            </objectparameters>
+                            <title>ข้อมูลเพิ่มเติม: เกี่ยวกับพีทาโกรัส</title>
+                            <body>
+                              <text>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <p><em>(สรุปและเรียบเรียงจากข้อมูลสาธารณะเกี่ยวกับ Pythagoras)</em></p>
+                                <p><b>พีทาโกรัส: ภาพรวม</b></p>
+                                <p><b>บทนำโดยย่อ</b></p>
+                                <p>พีทาโกรัสแห่งเกาะซามอสเป็นนักปรัชญาและนักคณิตศาสตร์ชาวกรีก เกิดราวปี 570 ก่อนคริสตกาล เขามีชื่อเสียงมากที่สุดจาก <b>ทฤษฎีพีทาโกรัส</b> ซึ่งเป็นหลักสำคัญของเรขาคณิต แนวคิดและคำสอนของเขามีอิทธิพลต่อวิทยาศาสตร์และปรัชญาหลายแขนง</p>
+                                <image type="url" target="/images/pythagoras/pythagoras_bust.png">รูปปั้นพีทาโกรัส</image>
+                                <p><b>ชีวิต</b></p>
+                                <p>พีทาโกรัสเกิดบนเกาะซามอส และเดินทางอย่างกว้างขวางในวัยหนุ่มเพื่อแสวงหาความรู้จากอียิปต์และบาบิโลน ต่อมาเขาตั้งถิ่นฐานในเมืองโครตอน ทางตอนใต้ของอิตาลีในปัจจุบัน และก่อตั้งชุมชนที่อุทิศตนให้กับการศึกษาคณิตศาสตร์ ดนตรี และปรัชญา เรื่องราวเกี่ยวกับชีวิตของเขามีตำนานประกอบอยู่มาก จึงทำให้รายละเอียดบางส่วนยังไม่แน่นอน</p>
+                                <p><b>คำสอนและความสำคัญของคณิตศาสตร์</b></p>
+                                <p>พีทาโกรัสและกลุ่มผู้ติดตามของเขาให้ความสำคัญกับคณิตศาสตร์อย่างยิ่ง และเชื่อว่าจำนวนเป็นรากฐานของระเบียบแห่งโลก ผลงานที่มีชื่อเสียงที่สุดคือทฤษฎีพีทาโกรัส ซึ่งกล่าวว่า ในสามเหลี่ยมมุมฉาก กำลังสองของด้านตรงข้ามมุมฉากเท่ากับผลรวมของกำลังสองของด้านอีกสองด้าน หรือ <b>c² = a² + b²</b></p>
+                                <image type="url" target="/images/pythagoras/pythagorean_diagram.png">แผนภาพทฤษฎีพีทาโกรัส</image>
+                                <p>การค้นพบนี้มีอิทธิพลอย่างมากต่อการพัฒนาเรขาคณิต และยังคงถูกนำไปใช้ในงานด้านวิทยาศาสตร์และเทคนิคจำนวนมากจนถึงปัจจุบัน</p>
+                                <p><b>สาขาอื่น ๆ</b></p>
+                                <p><b>ดนตรี:</b> เขาค้นพบความสัมพันธ์เชิงคณิตศาสตร์ของความกลมกลืนทางดนตรี และชี้ให้เห็นว่า ช่วงเสียงต่าง ๆ ในดนตรีสามารถอธิบายได้ด้วยอัตราส่วนของจำนวน</p>
+                                <p><b>ดาราศาสตร์:</b> พีทาโกรัสเสนอว่าโลกมีลักษณะเป็นทรงกลม และแนวคิดบางอย่างของเขาก็มีอิทธิพลต่อความคิดทางจักรวาลวิทยาในเวลาต่อมา</p>
+                                <p><b>การเมืองและสังคม:</b> ที่เมืองโครตอน เขาก่อตั้งชุมชนที่ยึดถือกฎด้านจริยธรรมและสังคมอย่างเคร่งครัด ซึ่งมีอิทธิพลต่อชีวิตทางการเมืองของภูมิภาคนั้นอย่างมาก</p>
+                                <p><b>ศาสนาและแนวคิดเรื่องวิญญาณ:</b> พีทาโกรัสเชื่อในความเป็นอมตะของวิญญาณและการเวียนว่ายตายเกิด โดยเชื่อว่าวิญญาณสามารถกลับมาเกิดใหม่ในร่างกายอื่นหลังความตาย</p>
+                                <p><b>ชุมชนของศิษย์</b></p>
+                                <p>กลุ่มพีทาโกรัสใช้ชีวิตคล้ายชุมชนสงฆ์ มีระเบียบวินัยสูง และต้องศึกษาอย่างลึกซึ้งทั้งด้านคณิตศาสตร์และปรัชญา การเป็นสมาชิกมักมีลักษณะปิดและเป็นความลับ</p>
+                                <p><b>การยอมรับในยุคสมัยใหม่</b></p>
+                                <p>ในยุคปัจจุบัน แนวคิดและการค้นพบของพีทาโกรัสยังคงถูกศึกษาและพัฒนาต่อไป อิทธิพลของเขาปรากฏชัดในคณิตศาสตร์และวิทยาศาสตร์สมัยใหม่ นักคิดและนักวิทยาศาสตร์จำนวนมาก เช่น เรอเน เดการ์ต และไอแซก นิวตัน ต่างได้รับแรงบันดาลใจจากรากฐานที่พีทาโกรัสวางไว้ ผลงานของเขาจึงยังคงเป็นส่วนสำคัญของการศึกษาทั่วโลกมาจนถึงทุกวันนี้</p>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                      </menu>
+                    </menuitem>
+                  </menu>
+                </menuitem>
+              </menu>
+            </menuitem>
+          </menu>
+        </menuitem>
+      </menu>
+    </menuitem>
+
+  </menu>
+</journaline>

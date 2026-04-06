@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+	<xs:annotation>
+		<xs:documentation>
+									(C) Copyright Fraunhofer IIS (2023)
+													All Rights Reserved
+
+		This software and/or program is protected by copyright law and
+		international treaties. Any unauthorized reproduction or distribution
+		of this software and/or program, or any portion of it, may result in
+		severe civil and criminal penalties, and will be prosecuted to the
+		maximum extent possible under law.
+
+		$Revision: 43818 $
+		XSD Version : 2.0.0
+		</xs:documentation>
+	</xs:annotation>
+	<!-- primitives -->
+	<xs:simpleType name="latitudeString">
+		<xs:restriction base="xs:float">
+			<xs:minInclusive value="-90.00"/>
+			<xs:maxInclusive value="90.00"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="longitudeString">
+		<xs:restriction base="xs:float">
+			<xs:minInclusive value="-180.00"/>
+			<xs:maxInclusive value="180.00"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="EmptyType"/>
+	<xs:simpleType name="NonEmptyString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:pattern value=".*[^\s].*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="idStringType">
+		<xs:restriction base="NonEmptyString">
+			<xs:pattern value="([a-z_A-Z0-9\-])*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ReferenceType">
+		<xs:restriction base="NonEmptyString"/>
+	</xs:simpleType>
+	<xs:complexType name="emphasizeType" mixed="true">
+		<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+	</xs:complexType>
+	<xs:complexType name="ImageType">
+		<xs:annotation>
+			<xs:documentation>The type for an image.</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="HyperTextType">
+				<xs:attribute name="type" use="required">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:enumeration value="local"/>
+							<xs:enumeration value="radio-uri"/>
+							<xs:enumeration value="url"/>
+							<xs:enumeration value="embedded"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:attribute>
+				<xs:attribute name="target" use="required">
+					<xs:simpleType>
+						<xs:restriction base="NonEmptyString"/>
+					</xs:simpleType>
+				</xs:attribute>
+				<xs:attribute name="imagetype" use="optional">
+					<xs:annotation>
+						<xs:documentation>Mime type indicator for embedded images see 5.3.2.4</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="NonEmptyString"/>
+					</xs:simpleType>
+				</xs:attribute>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- groups -->
+	<xs:group name="ObjectParameterGroup">
+		<xs:annotation>
+			<xs:documentation>Object management data that has to appear before the first visual Character</xs:documentation>
+		</xs:annotation>
+		<xs:all>
+			<xs:element name="image" type="ImageType" minOccurs="0" maxOccurs="1"/>
+			<xs:element name="stylerefs" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence minOccurs="1" maxOccurs="unbounded">
+						<xs:element name="style" minOccurs="0" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>The type for a style reference (a Journaline style folder)</xs:documentation>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:attribute name="type" use="required">
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:enumeration value="local"/>
+											<xs:enumeration value="radio-uri"/>
+											<xs:enumeration value="url"/>
+											<xs:enumeration value="embedded"/>
+											<xs:enumeration value="style-id"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:attribute>
+								<xs:attribute name="target" use="required">
+									<xs:simpleType>
+										<xs:restriction base="NonEmptyString"/>
+									</xs:simpleType>
+								</xs:attribute>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="abstimeout" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:attribute name="dateTime" type="xs:dateTime" use="required"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="reltimeout" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:attribute name="minutes" use="required">
+						<xs:simpleType>
+							<xs:restriction base="xs:int">
+								<xs:minInclusive value="0"/>
+								<xs:maxInclusive value="65535"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="defaultlanguage" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:attribute name="iso" use="required">
+						<xs:simpleType>
+							<xs:restriction base="NonEmptyString">
+								<xs:maxLength value="3"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+
+			<xs:element name="georegions" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="region" maxOccurs="unbounded"> <!-- 32? -->
+							<xs:complexType mixed="true">
+								<xs:complexContent>
+									<xs:extension base="HyperTextType">
+										<xs:sequence minOccurs="3" maxOccurs="unbounded">
+											<xs:element name="position">
+												<xs:complexType>
+													<xs:attribute name="lat" type="latitudeString" use="required"/>
+													<xs:attribute name="lon" type="longitudeString" use="required"/>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:extension>
+								</xs:complexContent>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="geopositions" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence minOccurs="1" maxOccurs="unbounded">
+						<xs:element name="position">
+							<xs:complexType>
+								<xs:complexContent>
+									<xs:extension base="HyperTextType">
+										<xs:attribute name="lat" type="latitudeString" use="required"/>
+										<xs:attribute name="lon" type="longitudeString" use="required"/>
+									</xs:extension>
+								</xs:complexContent>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="macrodefinitions" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="macro" maxOccurs="255">
+							<xs:complexType mixed="true">
+								<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+								<xs:attribute name="id" type="idStringType" use="required"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+				<xs:unique name="uniqueMacro">
+					<xs:selector xpath="macro"/>
+					<xs:field xpath="@id"/>
+				</xs:unique>
+			</xs:element>
+			<xs:element name="links" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="link" maxOccurs="255">
+							<xs:complexType mixed="true">
+								<xs:attribute name="type" use="required">
+									<xs:simpleType>
+										<xs:restriction base="NonEmptyString">
+											<xs:enumeration value="jml"/>
+											<xs:enumeration value="radio-uri"/> <!-- should we still keep "dab" for backwards compatibility? -->
+											<xs:enumeration value="url"/>
+											<xs:enumeration value="tel"/>
+											<xs:enumeration value="sms"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:attribute>
+								<xs:attribute name="target" type="NonEmptyString" use="required"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="filterregions" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+								 <xs:element name="region" minOccurs="1" maxOccurs="32">
+							<xs:complexType>
+								<xs:sequence minOccurs="3" maxOccurs="unbounded">
+									<xs:element name="position">
+										<xs:complexType>
+											<xs:attribute name="lat" type="latitudeString" use="required"/>
+											<xs:attribute name="lon" type="longitudeString" use="required"/>
+										</xs:complexType>
+									</xs:element>
+								</xs:sequence>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="filtertags" minOccurs="0" maxOccurs="1">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="tag" minOccurs="1" maxOccurs="1">
+							<xs:simpleType>
+								<xs:restriction base="NonEmptyString">
+									<xs:minLength value="1"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:all>
+	</xs:group>
+	<xs:group name="DataSectionGroup">
+		<xs:annotation>
+			<xs:documentation>tags that may appear anywhere within an object</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="image" type="ImageType"/>
+			<xs:element name="padding">
+				<xs:complexType>
+					<xs:attribute name="content" use="required">
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:minLength value="1"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="proprietary">
+				<xs:complexType>
+					<xs:attribute name="sourcetype" use="required">
+						<xs:simpleType>
+							<xs:restriction base="NonEmptyString">
+								<xs:enumeration value="text"/>
+								<xs:enumeration value="base64"/>
+								<xs:enumeration value="file"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+					<xs:attribute name="content" use="required">
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:minLength value="1"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="macro">
+				<xs:complexType>
+					<xs:attribute name="id" type="idStringType" use="required"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="escsequence">
+				<xs:complexType mixed="true">
+					<xs:attribute name="type" type="xs:unsignedByte" use="required"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="extescbegin">
+				<xs:complexType>
+					<xs:attribute name="code" type="xs:unsignedByte" use="required"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="extescend">
+				<xs:complexType>
+					<xs:attribute name="code" type="xs:unsignedByte" use="required"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="datasection">
+				<xs:complexType>
+					<xs:attribute name="type" type="xs:unsignedByte" use="required"/>
+					<xs:attribute name="content" use="required"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:choice>
+	</xs:group>
+	<xs:group name="TextFormatGroup">
+		<xs:annotation>
+			<xs:documentation>tags that can appear within visual text</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="keyword">
+				<xs:complexType mixed="true">
+					<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:attribute name="description"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="language">
+				<xs:complexType mixed="true">
+					<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:attribute name="iso" use="required">
+						<xs:simpleType>
+							<xs:restriction base="NonEmptyString">
+								<xs:maxLength value="3"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="phonemes">
+				<xs:complexType mixed="true">
+					<xs:attribute name="ipa" type="NonEmptyString" use="required"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="speechbreak">
+				<xs:complexType mixed="true">
+					<xs:attribute name="seconds" use="required">
+						<xs:simpleType>
+							<xs:restriction base="xs:decimal">
+								<xs:minInclusive value="0.1"/>
+								<xs:maxInclusive value="25.5"/>
+								<xs:fractionDigits value="1"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="speechspell">
+				<xs:complexType mixed="true"/>
+			</xs:element>
+		</xs:choice>
+	</xs:group>
+	<xs:group name="HtmlTagsGroup">
+		<xs:choice>
+			<xs:group ref="DataSectionGroup"/>
+			<xs:group ref="TextFormatGroup"/>
+
+			<xs:element name="br" type="EmptyType"/>
+			<xs:element name="wbr" type="EmptyType"/>
+
+			<!-- highlight/emphasize stop/start -->
+			<xs:element name="em" type="emphasizeType"/>
+			<xs:element name="b" type="emphasizeType"/>
+			<xs:element name="i" type="emphasizeType"/>
+			<xs:element name="strong" type="emphasizeType"/>
+			<!-- /highlight/emphasize stop/start -->
+
+			<xs:element name="p">
+				<xs:complexType mixed="true">
+					<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+				</xs:complexType>
+			</xs:element>
+
+			<xs:element name="introduction" type="EmptyType"/>
+		</xs:choice>
+	</xs:group>
+	<!-- types -->
+	<xs:complexType name="ObjectParameterType" mixed="true">
+		<xs:group ref="ObjectParameterGroup" minOccurs="1" maxOccurs="1"/>
+		<!-- Why was this unbounded? <xs:group ref="ObjectParameterGroup" minOccurs="1" maxOccurs="unbounded"/>
+			I changed this and defined min=0 and max=1 for all elements	 under ObjectParameterGroup; and choice -> all -->
+	</xs:complexType>
+	<xs:complexType name="HyperTextType" mixed="true">
+		<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+	</xs:complexType>
+	<xs:complexType name="TitleType" mixed="true">
+		<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+	</xs:complexType>
+	<xs:complexType name="ListitemType" mixed="true">
+		<xs:sequence minOccurs="0" maxOccurs="unbounded">
+			<xs:choice>
+				<xs:group ref="HtmlTagsGroup" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="tab" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType/>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="BodyType">
+		<xs:annotation>
+			<xs:documentation>Can contain either a single text element, multiple listitem elements or a single listfield.</xs:documentation>
+		</xs:annotation>
+		<xs:choice>
+			<xs:element name="text" type="HyperTextType"/>
+			<xs:element name="listitem" type="ListitemType" maxOccurs="unbounded"/>			
+		</xs:choice>		
+	</xs:complexType>
+	<xs:complexType name="ObjectType">
+		<xs:annotation>
+			<xs:documentation>Parent type of all object types in a Journaline</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="idString" type="idStringType" use="optional"/>
+		<xs:attribute name="objectID" type="xs:unsignedShort" use="optional"/>
+		<xs:attribute name="static" type="xs:boolean" use="optional"/>
+		<xs:attribute name="priority" type="xs:unsignedShort" use="optional"/>
+		<xs:attribute name="signature-issuer-ids" type="NonEmptyString" use="optional"/>
+	</xs:complexType>
+	<xs:complexType name="MessageType">
+		<xs:annotation>
+			<xs:documentation>The type for a message object</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="ObjectType">
+				<xs:all>
+					<!-- added maxOccurs for each of them -->
+					<xs:element name="objectparameters" type="ObjectParameterType" minOccurs="0" maxOccurs="1"/>
+					<xs:element name="title" type="TitleType" minOccurs="1" maxOccurs="1"/>
+					<xs:element name="body" type="BodyType" minOccurs="0" maxOccurs="1"/>
+				</xs:all>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="MenuItemType">
+
+		<xs:annotation>
+			<xs:documentation>
+				The generic type for a menu item entry. It should have a itemlabel and the sublevel object or a reference.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence minOccurs="1" maxOccurs="1">
+			<xs:element name="itemlabel" type="HyperTextType" minOccurs="0"/>
+			<xs:choice>
+				<xs:element name="message" type="MessageType"/>
+				<xs:element name="menu" type="MenuType"/>
+				<xs:element name="reference" type="ReferenceType"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="MenuType">
+		<xs:annotation>
+			<xs:documentation>The type for a menu structure</xs:documentation>
+		</xs:annotation>
+		<xs:complexContent>
+			<xs:extension base="ObjectType">
+				<xs:sequence>
+					<xs:sequence>
+						<xs:element name="objectparameters" type="ObjectParameterType" minOccurs="0"/>
+						<xs:element name="title" type="HyperTextType"/>
+					</xs:sequence>
+					<xs:choice minOccurs="1" maxOccurs="32"> <!-- make min=1 explicit (despite it's the default anyway) -->
+						<xs:element name="menuitem" type="MenuItemType"/>
+						<xs:element name="message" type="MessageType"/>
+						<xs:element name="menu" type="MenuType"/>
+						<xs:element name="reference" type="ReferenceType"/>
+					</xs:choice>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<!-- root element -->
+	<xs:element name="journaline">
+		<xs:annotation>
+			<xs:documentation>
+				The root element. Can either contain a message or a menu.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="fileinfo" minOccurs="0" maxOccurs="1"/>
+				<xs:choice>
+					<xs:element name="menu" type="MenuType"/>
+					<xs:element name="message" type="MessageType"/>
+				</xs:choice>
+			</xs:sequence>
+			<xs:attribute name="reference" type="xs:string" use="optional"/>
+		</xs:complexType>
+		<xs:unique name="uniqueobjectID">
+			<xs:selector xpath=".//*"/>
+			<xs:field xpath="@objectID"/>
+		</xs:unique>
+		<xs:unique name="uniqueidString">
+			<xs:selector xpath=".//*"/>
+			<xs:field xpath="@idString"/>
+		</xs:unique>
+	</xs:element>
+</xs:schema>

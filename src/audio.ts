@@ -32,9 +32,20 @@ export function resolveAudioUrl(params: {
 
 function buildAudioCandidates(page: PageNode, sourceLabel: string): string[] {
   const sourceBase = normalizeBaseName(sourceLabel);
+  const title = inlineToPlainText(page.title);
+  const titleSlug = slugify(title);
 
-  // Only use the XML filename as the key (one audio per XML file)
-  return [sourceBase];
+  const keys = [
+    page.idString ? `${sourceBase}::${page.idString}` : null,
+    page.objectID ? `${sourceBase}::objectID:${page.objectID}` : null,
+    titleSlug ? `${sourceBase}::title:${titleSlug}` : null,
+    page.idString ?? null,
+    page.objectID ? `objectID:${page.objectID}` : null,
+    titleSlug ? `title:${titleSlug}` : null,
+    sourceBase,
+  ].filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(keys));
 }
 
 export function inlineToPlainText(nodes: PageNode['title']): string {

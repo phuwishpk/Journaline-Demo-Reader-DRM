@@ -39,3 +39,14 @@ The app looks for matches in this order:
 - `public/data/Journaline.xsd`
 - `public/audio/*.wav`
 - `public/audio/audio-map.json`
+
+
+## Login for demo
+- Username: `admin`
+- Password: `admin123`
+
+## What was restored
+- XML-driven page rendering for both Admin and Public pages
+- Same Journaline-style renderer from `journaline-reader-ui-audio`
+- XML upload, audio upload, and image upload remain available in Admin
+- Public page reads the published XML/media from localStorage for demo use

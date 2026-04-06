@@ -28,56 +28,16 @@ export function resolvePage(doc: JournalineDocument, pageId: string): ResolvedPa
     cursor = cursor.parentId ? doc.pages[cursor.parentId] : undefined;
   }
 
-  // First, try to get next/previous from explicit links in page metadata
-  let nextId: string | undefined;
-  let previousId: string | undefined;
-
-  for (const link of page.meta.links) {
-    if (link.type === 'jml') {
-      const resolvedId = resolveReferenceTarget(doc, link.target);
-      const linkLabel = inlineToPlainText(link.label).toLowerCase();
-      
-      if (linkLabel.includes('หน้าถัดไป') || linkLabel.includes('next')) {
-        nextId = resolvedId;
-      }
-      if (linkLabel.includes('หน้าก่อนหน้า') || linkLabel.includes('previous') || linkLabel.includes('back')) {
-        previousId = resolvedId;
-      }
-    }
-  }
-
-  // Fallback to sibling navigation if no explicit links found
-  if (!nextId && !previousId) {
-    const siblingIds = page.siblingIds?.filter((id) => !id.includes('__pending')) ?? [];
-    const currentIndex = siblingIds.indexOf(page.id);
-    if (currentIndex >= 0 && currentIndex < siblingIds.length - 1) {
-      nextId = siblingIds[currentIndex + 1];
-    }
-    if (currentIndex > 0) {
-      previousId = siblingIds[currentIndex - 1];
-    }
-  }
+  const siblingIds = page.siblingIds?.filter((id) => !id.includes('__pending')) ?? [];
+  const currentIndex = siblingIds.indexOf(page.id);
 
   return {
     page,
     breadcrumbs,
-    previousId,
-    nextId,
+    previousId: currentIndex > 0 ? siblingIds[currentIndex - 1] : undefined,
+    nextId: currentIndex >= 0 && currentIndex < siblingIds.length - 1 ? siblingIds[currentIndex + 1] : undefined,
     upId: page.parentId,
   };
-}
-
-function inlineToPlainText(nodes: any[]): string {
-  if (!Array.isArray(nodes)) return '';
-  return nodes
-    .map((node) => {
-      if (node.type === 'text') return node.value;
-      if ('children' in node && Array.isArray(node.children)) return inlineToPlainText(node.children);
-      return '';
-    })
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 export function resolveReferenceTarget(doc: JournalineDocument, rawTarget: string): string | undefined {
