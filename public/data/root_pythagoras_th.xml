@@ -47,8 +47,7 @@
                             <title>คำนำ</title>
                             <body>
                               <text>
-                                <image type="url" target="                                # สร้างไฟล์เสียง test
-                                New-Item "e:\journaline-reader-app\public\audio\root_pythagoras_th.mp3" -ItemType File/images/pythagoras/education_logo.png">โลโก้ Education</image>
+                                <image type="url" target="/images/pythagoras/education_logo.png">โลโก้ Education</image>
                                 <p>สวัสดี!</p>
                                 <p>บทเรียนวันนี้ถูกส่งมาถึงคุณผ่านวิทยุรูปแบบพิเศษชนิดหนึ่ง</p>
                                 <p>เครื่องส่งวิทยุอยู่ห่างออกไปหลายพันกิโลเมตรในสหราชอาณาจักร ด้วยคลื่นวิทยุความถี่สูง สัญญาณสามารถเดินทางได้ไกลเพื่อมาถึงคุณ คลื่นความถี่สูงถูกใช้ในการกระจายเสียงวิทยุมานานแล้ว แต่ปัจจุบันมีเทคโนโลยีใหม่ที่เรียกว่า <b>Digital Radio Mondiale (DRM)</b></p>
