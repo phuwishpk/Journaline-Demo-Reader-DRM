@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import User from './models/User.js';
+import AudioMapping from './models/AudioMapping.js';
 import { authenticateToken, authorizeAdmin, generateToken } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -143,6 +144,28 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
+    // Check for default admin account
+    if (username === 'admin' && password === 'admin123') {
+      const adminUser = {
+        _id: 'admin-user',
+        username: 'admin',
+        email: 'admin@journaline.local',
+        role: 'admin'
+      };
+      const token = generateToken(adminUser);
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          username: 'admin',
+          email: 'admin@journaline.local',
+          role: 'admin'
+        },
+      });
+    }
+
+    // Check MongoDB users (if database is available)
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -190,7 +213,7 @@ app.get('/api/auth/verify-token', authenticateToken, async (req, res) => {
 });
 
 // ============= FILE UPLOAD ENDPOINTS (ADMIN ONLY) =============
-app.post('/api/upload-audio', upload.single('file'), (req, res) => {
+app.post('/api/upload-audio', authenticateToken, authorizeAdmin, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -206,7 +229,7 @@ app.post('/api/upload-audio', upload.single('file'), (req, res) => {
 });
 
 // Upload image file endpoint (admin only)
-app.post('/api/upload-image', uploadImage.single('file'), (req, res) => {
+app.post('/api/upload-image', authenticateToken, authorizeAdmin, uploadImage.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -561,6 +584,155 @@ app.post('/api/validate-xml', (req, res) => {
       valid: false,
       error: `Validation error: ${err instanceof Error ? err.message : 'Unknown error'}`
     });
+  }
+});
+
+// ============= AUDIO MAPPING ENDPOINTS (MONGODB) =============
+
+// Save audio mapping - links XML + pageId to audio file
+app.post('/api/audio-mapping', authenticateToken, authorizeAdmin, async (req, res) => {
+  try {
+    const { xmlName, audioPath, originalFilename, fileSize } = req.body;
+    
+    if (!xmlName || !audioPath) {
+      return res.status(400).json({ error: 'Missing xmlName or audioPath' });
+    }
+
+    let saved = false;
+    
+    // Try to save to MongoDB first
+    try {
+      const updated = await AudioMapping.findOneAndUpdate(
+        { xmlName },
+        { 
+          xmlName,
+          audioPath,
+          originalFilename,
+          fileSize,
+          uploadedBy: req.user?.username || 'admin'
+        },
+        { upsert: true, new: true }
+      );
+      
+      res.json({
+        success: true,
+        message: 'Audio mapping saved',
+        mapping: updated.toJSON()
+      });
+      saved = true;
+    } catch (mongoErr) {
+      console.warn('MongoDB unavailable, trying JSON file fallback:', mongoErr.message);
+    }
+    
+    // If MongoDB failed, save to JSON file as fallback
+    if (!saved) {
+      try {
+        const audioMapPath = path.join(__dirname, 'public', 'audio', 'audio-map.json');
+        let mapData = {};
+        
+        // Read existing mappings
+        if (fs.existsSync(audioMapPath)) {
+          try {
+            mapData = JSON.parse(fs.readFileSync(audioMapPath, 'utf-8'));
+          } catch (e) {
+            mapData = {};
+          }
+        }
+        
+        // Add/update the mapping using xmlName as key
+        mapData[xmlName] = audioPath;
+        
+        // Write back to file
+        fs.writeFileSync(audioMapPath, JSON.stringify(mapData, null, 2), 'utf-8');
+        
+        res.json({
+          success: true,
+          message: 'Audio mapping saved to file (MongoDB unavailable)',
+          mapping: {
+            xmlName,
+            audioPath,
+            originalFilename,
+            fileSize,
+            uploadedBy: req.user?.username || 'admin'
+          }
+        });
+      } catch (fileErr) {
+        console.error('Failed to save audio mapping to file:', fileErr);
+        res.status(500).json({ error: 'Failed to save audio mapping to either MongoDB or file' });
+      }
+    }
+  } catch (err) {
+    console.error('Audio mapping error:', err);
+    res.status(500).json({ error: 'Failed to save audio mapping' });
+  }
+});
+
+// Get audio mapping for XML file
+app.get('/api/audio-mapping/:xmlName', async (req, res) => {
+  try {
+    const { xmlName } = req.params;
+    
+    let audioMap = {};
+    
+    // Try MongoDB first
+    try {
+      const mapping = await AudioMapping.findOne({ xmlName });
+      if (mapping) {
+        const sourceBase = xmlName.replace(/\.xml$/i, '');
+        audioMap[sourceBase] = mapping.audioPath;
+      }
+    } catch (mongoErr) {
+      console.warn('MongoDB unavailable, trying fallback...');
+    }
+    
+    // If MongoDB didn't return anything or is unavailable, try JSON file fallback
+    if (Object.keys(audioMap).length === 0) {
+      const audioMapPath = path.join(__dirname, 'public', 'audio', 'audio-map.json');
+      if (fs.existsSync(audioMapPath)) {
+        try {
+          const mapData = JSON.parse(fs.readFileSync(audioMapPath, 'utf-8'));
+          // Filter mappings for this XML - keys start with "xmlname::" or are standalone keys
+          for (const [key, value] of Object.entries(mapData)) {
+            // Match keys that start with this XML's full name (with .xml)
+            if (key.startsWith(xmlName + '::') || key.startsWith(xmlName.replace(/\.xml$/i, '') + '::')) {
+              audioMap[key] = value;
+            }
+          }
+        } catch (jsonErr) {
+          console.warn('Failed to parse audio-map.json:', jsonErr);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      audioMap: audioMap
+    });
+  } catch (err) {
+    console.error('Audio mapping lookup error:', err);
+    res.status(500).json({ error: 'Failed to fetch audio mappings' });
+  }
+});
+
+// Delete audio mapping for XML
+app.delete('/api/audio-mapping/:xmlName', authenticateToken, authorizeAdmin, async (req, res) => {
+  try {
+    const { xmlName } = req.params;
+    
+    const mapping = await AudioMapping.findOneAndDelete({ xmlName });
+    
+    if (!mapping) {
+      return res.status(404).json({ error: 'Audio mapping not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Audio mapping deleted',
+      mapping: mapping.toJSON()
+    });
+  } catch (err) {
+    console.error('Audio mapping deletion error:', err);
+    res.status(500).json({ error: 'Failed to delete audio mapping' });
   }
 });
 

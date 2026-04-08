@@ -108,7 +108,7 @@ export default function JournalineViewer({
         </div>
         <div className="service-actions">
           <span>i</span>
-          <AudioControls audioUrl={audioInfo.url} />
+          <AudioControls audioUrl={audioInfo.url} filename={audioInfo.filename} matchedKey={audioInfo.matchedKey} />
           <span>⚙</span>
         </div>
       </div>

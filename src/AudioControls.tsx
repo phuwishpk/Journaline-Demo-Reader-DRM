@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 
 type Props = {
   audioUrl: string | null;
+  filename?: string | null;
+  matchedKey?: string | null;
   onVolumeChange?: (volume: number) => void;
 };
 
-export default function AudioControls({ audioUrl, onVolumeChange }: Props) {
+export default function AudioControls({ audioUrl, filename, matchedKey, onVolumeChange }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
@@ -54,7 +56,20 @@ export default function AudioControls({ audioUrl, onVolumeChange }: Props) {
   const canPlay = Boolean(audioUrl);
 
   return (
-    <>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {filename && (
+        <span style={{ 
+          fontSize: '12px', 
+          color: '#666',
+          whiteSpace: 'nowrap',
+          maxWidth: '200px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }} 
+        title={filename}>
+          🎵 {filename}
+        </span>
+      )}
       <audio 
         ref={audioRef} 
         onPlay={() => setIsPlaying(true)}
@@ -87,6 +102,6 @@ export default function AudioControls({ audioUrl, onVolumeChange }: Props) {
         }}
         title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
       />
-    </>
+    </div>
   );
 }

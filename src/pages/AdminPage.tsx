@@ -20,7 +20,7 @@ import {
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () => void }) {
-  const { logout } = useAuth();
+  const { logout, token } = useAuth();
   const [xmlText, setXmlText] = useState('');
   const [sourceLabel, setSourceLabel] = useState('root.xml');
   const [status, setStatus] = useState<LoadState>('idle');
@@ -40,7 +40,8 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     } else {
       void loadSample(SAMPLE_FILES[0].path, SAMPLE_FILES[0].label);
     }
-    void loadAudioMap().then(setBaseAudioMap);
+    // Load audio mappings from MongoDB
+    void loadAudioMap(SAMPLE_FILES[0].label).then(setBaseAudioMap);
     
     // Load uploaded audio/image maps from localStorage (persist across reloads)
     setUploadedAudioMap(loadStoredAudioMap());
@@ -80,7 +81,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     
     const fetchMatchingMedia = async () => {
       try {
-        const response = await fetch(`/api/media/by-xmlname?name=${encodeURIComponent(xmlStem)}`);
+        const response = await fetch(`http://localhost:5001/api/media/by-xmlname?name=${encodeURIComponent(xmlStem)}`);
         if (!response.ok) throw new Error('Failed to fetch media');
         const data = await response.json();
         
@@ -107,6 +108,11 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     };
     
     fetchMatchingMedia();
+    
+    // Load audio mappings for the current XML from MongoDB
+    if (sourceLabel) {
+      void loadAudioMap(sourceLabel).then(setBaseAudioMap);
+    }
   }, [sourceLabel]);
 
   // Load saved media assignment for the opened XML file
@@ -120,30 +126,44 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     const xmlStem = sourceLabel.replace(/\.[^.]+$/, '');
     const assignment = loadMediaAssignmentForXml(xmlStem);
     
+    // Start building the audio/image maps
+    const newAudioMap: AudioMap = {};
+    const newImageMap: ImageMap = {};
+    
+    // First, try to load previously stored audio/image for this XML (has full paths)
+    const storedAudioMap = loadStoredAudioMap();
+    const storedImageMap = loadStoredImageMap();
+    if (storedAudioMap[xmlStem]) {
+      newAudioMap[xmlStem] = storedAudioMap[xmlStem];
+      console.log(`  📻 Loaded stored audio: ${xmlStem} → ${storedAudioMap[xmlStem]}`);
+    }
+    if (storedImageMap[xmlStem]) {
+      newImageMap[xmlStem] = storedImageMap[xmlStem];
+      console.log(`  🖼️  Loaded stored image: ${xmlStem} → ${storedImageMap[xmlStem]}`);
+    }
+    
+    // Then load from media assignment (file listings)
     if (assignment.audioFiles.length > 0 || assignment.imageFiles.length > 0) {
       console.log(`📥 Loaded media assignment for ${xmlStem}:`, assignment);
       
-      // Load audio files from /public/audio/
-      if (assignment.audioFiles.length > 0) {
-        const newAudioMap: AudioMap = {};
+      // Load audio files from /public/audio/ ONLY if no stored audio exists
+      // (stored audio from uploads is the source of truth)
+      if (assignment.audioFiles.length > 0 && !storedAudioMap[xmlStem]) {
         for (const filename of assignment.audioFiles) {
           const audioUrl = `/audio/${filename}`;
-          const stem = filename.replace(/\.[^.]+$/, '');
-          newAudioMap[stem] = audioUrl;
-          console.log(`  📻 Added audio: ${stem} → ${audioUrl}`);
+          // Use xmlStem as key (not filename stem) so it matches audio candidates
+          newAudioMap[xmlStem] = audioUrl;
+          console.log(`  📻 Added audio: ${xmlStem} → ${audioUrl}`);
         }
-        setUploadedAudioMap(newAudioMap);
       }
       
       // Load image files from /public/images/
       if (assignment.imageFiles.length > 0) {
-        const newImageMap: ImageMap = {};
         for (const filename of assignment.imageFiles) {
           const imageUrl = `/images/${filename}`;
           newImageMap[filename] = imageUrl;
           console.log(`  🖼️  Added image: ${filename} → ${imageUrl}`);
         }
-        setUploadedImageMap(newImageMap);
       }
       
       // Also add to referenced files for display
@@ -157,13 +177,23 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         return Array.from(combined).sort();
       });
     }
+    
+    // Apply the maps
+    if (Object.keys(newAudioMap).length > 0) {
+      setUploadedAudioMap(newAudioMap);
+    }
+    if (Object.keys(newImageMap).length > 0) {
+      setUploadedImageMap(newImageMap);
+    }
   }, [sourceLabel]);
 
   async function loadSample(path: string, label: string) {
     setStatus('loading');
     setError('');
     try {
-      const response = await fetch(path);
+      // Fetch from public folder via static server on port 5001
+      const fullUrl = `http://localhost:5001${path}`;
+      const response = await fetch(fullUrl);
       if (!response.ok) throw new Error(`Failed to load ${label}`);
       const text = await response.text();
       setXmlText(text);
@@ -199,16 +229,25 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
     
+    if (!token) {
+      setError('Not authenticated - please login first');
+      return;
+    }
+
     setStatus('loading');
     const nextMap = { ...uploadedAudioMap };
     
     for (const file of files) {
       try {
+        // Upload audio file
         const formData = new FormData();
         formData.append('file', file);
         
-        const response = await fetch('/api/upload-audio', {
+        const response = await fetch('http://localhost:5001/api/upload-audio', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
           body: formData
         });
         
@@ -217,9 +256,31 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         const data = await response.json();
         console.log(`📻 Uploaded audio: ${file.name} → ${data.path}`);
         
-        // Store using filename stem as key
-        const stem = file.name.replace(/\.[^.]+$/, '');
-        nextMap[stem] = data.path; // Use server path instead of Object URL
+        // Store using sourceBase as key (to match MongoDB)
+        const sourceBase = sourceLabel.replace(/\.xml$/i, '');
+        nextMap[sourceBase] = data.path;
+        
+        // Save audio mapping to MongoDB (one per XML)
+        const mappingResponse = await fetch('http://localhost:5001/api/audio-mapping', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            xmlName: sourceLabel,
+            audioPath: data.path,
+            originalFilename: file.name,
+            fileSize: file.size
+          })
+        });
+        
+        if (!mappingResponse.ok) {
+          console.warn(`⚠️ Failed to save audio mapping for ${sourceLabel}`);
+        } else {
+          const mappingData = await mappingResponse.json();
+          console.log(`✅ Audio mapping saved: ${sourceLabel} → ${data.path}`);
+        }
       } catch (err) {
         console.error(`❌ Failed to upload ${file.name}:`, err);
         setError(`Failed to upload ${file.name}`);
@@ -237,6 +298,11 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
     
+    if (!token) {
+      setError('Not authenticated - please login first');
+      return;
+    }
+
     setStatus('loading');
     const nextMap = { ...uploadedImageMap };
     
@@ -245,8 +311,11 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         const formData = new FormData();
         formData.append('file', file);
         
-        const response = await fetch('/api/upload-image', {
+        const response = await fetch('http://localhost:5001/api/upload-image', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
           body: formData
         });
         
@@ -342,11 +411,17 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
 
         <div className="control-section">
           <h2>Upload Audio</h2>
+          
           <label className="upload-box upload-box--short">
             <span>Select audio files</span>
-            <input type="file" accept="audio/*" multiple onChange={handleAudioUpload} />
+            <input 
+              type="file" 
+              accept="audio/*" 
+              multiple 
+              onChange={handleAudioUpload}
+            />
           </label>
-          <p className="helper-text">ระบบจะ map อัตโนมัติตามชื่อไฟล์ เช่น <code>hot_news.wav</code> → key <code>hot_news</code></p>
+          <p className="helper-text">Audio files will be mapped to the current XML and saved to the database</p>
           
           <div className="manifest-count">Mapped audio keys: {Object.keys(uploadedAudioMap).length}</div>
           {Object.keys(uploadedAudioMap).length > 0 && (

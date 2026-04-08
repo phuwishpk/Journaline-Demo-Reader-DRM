@@ -4,9 +4,10 @@ type Props = {
   audioUrl: string | null;
   pageTitle: string;
   matchedKey?: string | null;
+  filename?: string | null;
 };
 
-export default function AudioPlayer({ audioUrl, pageTitle, matchedKey }: Props) {
+export default function AudioPlayer({ audioUrl, pageTitle, matchedKey, filename }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -94,7 +95,10 @@ export default function AudioPlayer({ audioUrl, pageTitle, matchedKey }: Props) 
         <div>
           <div className="audio-player-label">Page audio</div>
           <div className="audio-player-title">{pageTitle || 'Untitled page'}</div>
-          <div className="audio-player-subtitle">{matchedKey ? `Matched key: ${matchedKey}` : 'No audio mapped for this page'}</div>
+          <div className="audio-player-subtitle">
+            {filename ? `🎵 ${filename}` : 'No audio mapped for this page'}
+            {matchedKey && filename && <span> • {matchedKey}</span>}
+          </div>
         </div>
         <div className="audio-player-actions">
           <button className="icon-button" onClick={togglePlay} disabled={!canPlay} title={isPlaying ? 'Pause' : 'Play'}>

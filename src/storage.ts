@@ -28,7 +28,11 @@ export function loadStoredAudioMap(): AudioMap {
 }
 
 export function saveStoredAudioMap(map: AudioMap) {
-  localStorage.setItem(AUDIO_MAP_KEY, JSON.stringify(map));
+  // MERGE with existing audio map instead of replacing
+  // This ensures audio for different XMLs doesn't get wiped out
+  const existing = loadStoredAudioMap();
+  const merged = { ...existing, ...map };
+  localStorage.setItem(AUDIO_MAP_KEY, JSON.stringify(merged));
 }
 
 export function loadStoredImageMap(): ImageMap {
@@ -36,7 +40,11 @@ export function loadStoredImageMap(): ImageMap {
 }
 
 export function saveStoredImageMap(map: ImageMap) {
-  localStorage.setItem(IMAGE_MAP_KEY, JSON.stringify(map));
+  // MERGE with existing image map instead of replacing
+  // This ensures images for different XMLs don't get wiped out
+  const existing = loadStoredImageMap();
+  const merged = { ...existing, ...map };
+  localStorage.setItem(IMAGE_MAP_KEY, JSON.stringify(merged));
 }
 
 // Save media assignment for a specific XML file

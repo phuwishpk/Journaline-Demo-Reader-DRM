@@ -6,15 +6,24 @@ export default function LoginPage({ onLoginSuccess, onBack }: { onLoginSuccess: 
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const ok = login(username, password);
-    if (ok) {
-      setError('');
-      onLoginSuccess();
-    } else {
-      setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    setLoading(true);
+    setError('');
+    try {
+      const ok = await login(username, password);
+      if (ok) {
+        onLoginSuccess();
+      } else {
+        setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      }
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -32,16 +41,18 @@ export default function LoginPage({ onLoginSuccess, onBack }: { onLoginSuccess: 
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
             <span>Username</span>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading} />
           </label>
           <label>
             <span>Password</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
           </label>
           {error ? <div className="error-text">{error}</div> : null}
           <div className="login-actions">
-            <button type="submit" className="secondary-button">Login</button>
-            <button type="button" className="ghost-button" onClick={onBack}>Back to Public</button>
+            <button type="submit" className="secondary-button" disabled={loading}>
+              {loading ? 'Loading...' : 'Login'}
+            </button>
+            <button type="button" className="ghost-button" onClick={onBack} disabled={loading}>Back to Public</button>
           </div>
         </form>
 

@@ -22,10 +22,14 @@ export default function PublicPage({ onNavigateAdmin }: { onNavigateAdmin: () =>
       setXmlText(stored.xmlText);
       setSourceLabel(stored.sourceLabel || 'uploaded.xml');
       setStatus('ready');
+      // Load audio mappings from MongoDB
+      void loadAudioMap(stored.sourceLabel || 'uploaded.xml').then(setBaseAudioMap);
     } else {
-      void loadDefaultSample();
+      void loadDefaultSample().then(() => {
+        // Load audio mappings for default sample
+        void loadAudioMap('root.xml').then(setBaseAudioMap);
+      });
     }
-    void loadAudioMap().then(setBaseAudioMap);
     setUploadedAudioMap(loadStoredAudioMap());
     setUploadedImageMap(loadStoredImageMap());
   }, []);
@@ -37,6 +41,8 @@ export default function PublicPage({ onNavigateAdmin }: { onNavigateAdmin: () =>
         setXmlText(stored.xmlText);
         setSourceLabel(stored.sourceLabel || 'uploaded.xml');
         setStatus('ready');
+        // Reload audio mappings when XML changes
+        void loadAudioMap(stored.sourceLabel || 'uploaded.xml').then(setBaseAudioMap);
       }
       setUploadedAudioMap(loadStoredAudioMap());
       setUploadedImageMap(loadStoredImageMap());
@@ -44,6 +50,13 @@ export default function PublicPage({ onNavigateAdmin }: { onNavigateAdmin: () =>
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  // Load audio mappings whenever sourceLabel changes
+  useEffect(() => {
+    if (sourceLabel) {
+      void loadAudioMap(sourceLabel).then(setBaseAudioMap);
+    }
+  }, [sourceLabel]);
 
   const mergedAudioMap = useMemo(() => ({ ...baseAudioMap, ...uploadedAudioMap }), [baseAudioMap, uploadedAudioMap]);
 
