@@ -81,9 +81,8 @@ export function extractReferencedFilesFromXml(xmlText: string): {
     audioElements.forEach((el) => {
       const audiofile = el.getAttribute('audiofile');
       if (audiofile) {
-        // Extract just the filename without paths
-        const filename = audiofile.split('/').pop() || audiofile;
-        audioFiles.add(filename);
+        // Keep the full path for later resolution
+        audioFiles.add(audiofile);
       }
     });
 
@@ -92,9 +91,8 @@ export function extractReferencedFilesFromXml(xmlText: string): {
     imageElementsWithTarget.forEach((el) => {
       const target = el.getAttribute('target');
       if (target) {
-        // Extract just the filename without paths
-        const filename = target.split('/').pop() || target;
-        imageFiles.add(filename);
+        // Keep full path (e.g., /images/pythagoras/education_logo.png)
+        imageFiles.add(target);
       }
     });
 
@@ -103,8 +101,7 @@ export function extractReferencedFilesFromXml(xmlText: string): {
     imageElements.forEach((el) => {
       const imageref = el.getAttribute('imageref');
       if (imageref) {
-        const filename = imageref.split('/').pop() || imageref;
-        imageFiles.add(filename);
+        imageFiles.add(imageref);
       }
     });
 

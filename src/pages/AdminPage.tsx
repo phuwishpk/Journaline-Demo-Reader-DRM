@@ -27,6 +27,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
   const [error, setError] = useState('');
   const [baseAudioMap, setBaseAudioMap] = useState<AudioMap>({});
   const [uploadedAudioMap, setUploadedAudioMap] = useState<AudioMap>({});
+  const [baseImageMap, setBaseImageMap] = useState<ImageMap>({});
   const [uploadedImageMap, setUploadedImageMap] = useState<ImageMap>({});
   const [referencedAudioFiles, setReferencedAudioFiles] = useState<string[]>([]);
   const [referencedImageFiles, setReferencedImageFiles] = useState<string[]>([]);
@@ -49,7 +50,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
   }, []);
 
   const mergedAudioMap = useMemo(() => ({ ...baseAudioMap, ...uploadedAudioMap }), [baseAudioMap, uploadedAudioMap]);
-  const mergedImageMap = useMemo(() => ({ ...uploadedImageMap }), [uploadedImageMap]);
+  const mergedImageMap = useMemo(() => ({ ...baseImageMap, ...uploadedImageMap }), [baseImageMap, uploadedImageMap]);
 
   const doc = useMemo<JournalineDocument | null>(() => {
     if (!xmlText) return null;
@@ -65,11 +66,21 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     if (!xmlText) {
       setReferencedAudioFiles([]);
       setReferencedImageFiles([]);
+      setBaseImageMap({});
       return;
     }
     const { audioFiles, imageFiles } = extractReferencedFilesFromXml(xmlText);
     setReferencedAudioFiles(audioFiles);
     setReferencedImageFiles(imageFiles);
+    
+    // Create image aliases for all referenced files to enable preview display
+    const baseImages: ImageMap = {};
+    for (const imagePath of imageFiles) {
+      // imagePath is already a full path like /images/pythagoras/education_logo.png
+      Object.assign(baseImages, buildImageAliases(imagePath, imagePath));
+    }
+    console.log(`📸 Created ${Object.keys(baseImages).length} image aliases from XML references`);
+    setBaseImageMap(baseImages);
   }, [xmlText]);
 
   // Fetch media files that match the loaded XML filename
@@ -77,7 +88,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     if (!sourceLabel) return;
     
     // Extract stem from sourceLabel (e.g., "root_pythagoras_th.xml" -> "root_pythagoras_th")
-    const xmlStem = sourceLabel.replace(/\.[^.]+$/, '');
+    const  xmlStem = sourceLabel.replace(/\.[^.]+$/, '');
     
     const fetchMatchingMedia = async () => {
       try {
@@ -100,6 +111,16 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
             const combined = new Set([...prev, ...matchingImageStems]);
             return Array.from(combined).sort();
           });
+          
+          // Create image aliases for all matching images to display in preview
+          const baseImages: ImageMap = {};
+          for (const image of data.images) {
+            const imageUrl = image.url || `/images/${image.folder}/${image.name}`;
+            // Create aliases using full path so resolveImageUrl can find them
+            Object.assign(baseImages, buildImageAliases(imageUrl, imageUrl));
+          }
+          console.log(`📸 Loaded ${Object.keys(baseImages).length} image aliases from media by name`);
+          setBaseImageMap(baseImages);
         }
       } catch (err) {
         console.error('Error fetching matching media:', err);
@@ -161,7 +182,8 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
       if (assignment.imageFiles.length > 0) {
         for (const filename of assignment.imageFiles) {
           const imageUrl = `/images/${filename}`;
-          newImageMap[filename] = imageUrl;
+          // Use buildImageAliases with full path to match XML targets like /images/pythagoras/education_logo.png
+          Object.assign(newImageMap, buildImageAliases(imageUrl, imageUrl));
           console.log(`  🖼️  Added image: ${filename} → ${imageUrl}`);
         }
       }
@@ -428,11 +450,14 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
             <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(100, 200, 150, 0.1)', borderRadius: '4px' }}>
               <p style={{ margin: '0 0 6px', fontSize: '0.85rem', fontWeight: '500', color: '#4CAF50' }}>✅ Uploaded:</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {Object.keys(uploadedAudioMap).map((key) => (
-                  <span key={key} style={{ background: 'rgba(76, 175, 80, 0.2)', padding: '4px 8px', borderRadius: '3px', fontSize: '0.8rem', border: '1px solid rgba(76, 175, 80, 0.4)' }}>
-                    🎵 {key}
-                  </span>
-                ))}
+                {Object.entries(uploadedAudioMap).map(([key, path]) => {
+                  const filename = typeof path === 'string' ? path.split('/').pop() || path : path;
+                  return (
+                    <span key={key} style={{ background: 'rgba(76, 175, 80, 0.2)', padding: '4px 8px', borderRadius: '3px', fontSize: '0.8rem', border: '1px solid rgba(76, 175, 80, 0.4)' }}>
+                      🎵 {filename}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -464,11 +489,14 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
             <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(30, 165, 141, 0.1)', borderRadius: '8px' }}>
               <p style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: '500', color: '#1ea58d' }}>📂 Reference in XML:</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {referencedImageFiles.map((f) => (
-                  <span key={f} style={{ background: 'rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.85rem', border: '1px solid rgba(30, 165, 141, 0.3)' }}>
-                    📸 {f}
-                  </span>
-                ))}
+                {referencedImageFiles.map((f) => {
+                  const displayName = f.split('/').pop() || f;
+                  return (
+                    <span key={f} style={{ background: 'rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.85rem', border: '1px solid rgba(30, 165, 141, 0.3)' }}>
+                      📸 {displayName}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
