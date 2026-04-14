@@ -75,6 +75,11 @@ app.use(express.text({ type: 'application/xml', limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Explicit route for root path - serve compiled index.html from dist
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 // Configure multer for audio uploads (admin only)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
