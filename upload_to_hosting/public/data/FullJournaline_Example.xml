@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journaline xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Journaline.xsd">
+
+	<fileinfo>
+		<description>Journaline(R) XML Example - Demonstration of most Journaline service structure and formatting features</description>
+		<version>2.0.0, 2023-03-22</version>
+		<author>Fraunhofer IIS, Erlangen, Germany</author>
+		<contact>https://www.journaline.info, mailto:journaline-support@iis.fraunhofer.de</contact>
+		<copyright>
+			/**************************************************************************
+						(C) Copyright Fraunhofer IIS (2007-2023)
+										All Rights Reserved
+			This software and/or program is protected by copyright law and
+			international treaties. Any unauthorized reproduction or distribution
+			of this software and/or program, or any portion of it, may result in
+			severe civil and criminal penalties, and will be prosecuted to the
+			maximum extent possible under law.
+			**************************************************************************/
+		</copyright>
+	</fileinfo>
+
+	<menu>
+		<title>Welcome to Your Weather Site</title>
+
+		<menuitem>
+			<itemlabel>Hot News</itemlabel>
+			<message idString="hot_news">
+			  <title>42°C<br/><em>Smog warning!</em><br/>
+					Sunshine and high temp<wbr/>eratures have increased the danger of cancerous dust and ozone.
+				</title>
+			</message>
+		</menuitem>
+
+		<menuitem>
+			<itemlabel>Today's weather</itemlabel>
+			<message idString="weather_today">
+				<objectparameters>
+					<macrodefinitions>
+						<macro id="1">wonderful</macro>
+						<macro id="2">Meteorologists</macro>
+					</macrodefinitions>
+				</objectparameters>
+				<title><image type="url" target="https://png.pngtree.com/png-vector/20190118/ourlarge/pngtree-cartoon-sun-smiling-sun-graffiti-smiling-sun-lovely-sun-png-image_461313.jpg"/>Today's Forecast</title>
+				<body>
+					<text>
+						Important News <introduction />
+						<p>Today will be the hottest day of the summer.</p>
+						<p>Temperatures of about 41°C and no clouds will make it a <macro id="1"/> day for sun bathing in the afternoon...<speechbreak seconds="1"/></p>
+						<p><macro id="2"/> advise people to stay at home at noon...</p>
+					</text>
+				</body>
+			</message>
+		</menuitem>
+
+		<menuitem>
+			<menu>
+				<title>Three-Days' Forecast</title>
+
+				<menuitem>
+					<itemlabel>Tomorrow</itemlabel>
+					<message>
+						<title>Wednesday</title>
+						<body>
+							<text>Hot and sunny. Temperatures of about 38°C. Later torments and...</text>
+						</body>
+					</message>
+				</menuitem>
+
+				<menuitem>
+					<itemlabel>After Tomorrow</itemlabel>
+					<message idString="After_Tomorrow">
+						<title>Thursday</title>
+						<body>
+							<text>Cloudy and strong winds. Falling temperatures. In the afternoon first showers ...</text>
+						</body>
+					</message>
+				</menuitem>
+
+				<menuitem>
+					<message>
+						<title>Thursday</title>
+						<body>
+							<text>Cloudy and strong winds. Falling temperatures. In the afternoon first showers ...</text>
+						</body>
+					</message>
+				</menuitem>
+
+				<menuitem>
+					<message>
+						<title>Friday</title>
+						<body>
+							<text>Rain and temperatures of about 23°C. Winds are lowering ...</text>
+						</body>
+					</message>
+				</menuitem>	
+			</menu>
+		</menuitem>
+
+		<menuitem>
+		<itemlabel>Unicode Example</itemlabel>
+			<message>
+				<title>Unicode Example: 汉语/漢語</title>
+				<body>
+					<text>
+						Unicode Characters: 汉语/漢語
+					</text>
+				</body>
+			</message>
+		</menuitem>
+
+		<menuitem>
+			<message>
+				<objectparameters>
+					<geopositions>
+						<position lat="42" lon="22"/>
+					</geopositions>
+					<links>
+						<link type="tel" target="+11112322323232">Call this number: +1111 232 2323232</link>
+						<link type="url" target="mailto:info@gothamcity.org">Send an e-mail: info@gothamcity.org</link>
+						<link type="url" target="http://gothamcity.org">Visit our website: gothamcity.org</link>
+					</links>
+				</objectparameters>
+				<title>Imprint</title>
+				<body>
+					<text>
+						<image type="url" target="http://briard.typepad.com/.a/6a0120a6399ca9970c0162fcb3c279970d-800wi"/><br/>
+						<b>Hans Mustermann</b><br/>
+						Atillastreet 123<br/>
+						98765 Gotham City<br/>
+						<br/>
+						T: +1111 232 2323232<br/>
+						E: info@gothamcity.org<br/>
+						W: gothamcity.org
+					</text>
+				</body>
+			</message>
+		</menuitem>
+
+		<menuitem>
+				<menu>
+				<title>References to internal elements</title>
+					<menuitem>
+						<itemlabel>Go to Hot News (explanation of references)</itemlabel>
+						<reference>#hot_news</reference>
+					</menuitem>
+				</menu>
+		</menuitem>
+
+		<menuitem>
+			<message>
+				<objectparameters>
+					<abstimeout dateTime="2023-03-10T05:05:55"/>
+				</objectparameters>
+				<title>Timeout Example</title>
+			</message>
+		</menuitem>
+
+
+		<menuitem>
+		<itemlabel>Georegions Example</itemlabel>
+			<message>
+				<title>Georegions</title>
+					<objectparameters>
+						<georegions>
+							<region>
+								<position lon="-71.973253" lat="44.764393"/>
+								<position lon="-71.949319" lat="44.796868"/>
+								<position lon="-71.958176" lat="44.800632"/>
+								<position lon="-71.982112" lat="44.767850"/>
+							</region>
+							<region>
+								This region definition contains a <em>label text</em>, that describes the region definition.<br />
+								In this case the <b>Central Park</b> in New York City
+								<position lon="-73.973253" lat="40.764393"/>
+								<position lon="-73.949319" lat="40.796868"/>
+								<position lon="-73.958176" lat="40.800632"/>
+								<position lon="-73.982112" lat="40.767850"/>
+							</region>
+						</georegions>
+					</objectparameters>
+			</message>
+		</menuitem>
+
+		<!--  // showcasing a reference to the content (Journaline page or sub-menu)
+			    // provided by another Content Provider (for the same Journaline Service Component)
+					// by using the reference style "@<login-name>":
+		<menuitem>
+			<itemlabel>World Weather</itemlabel>
+			<reference>worldwide/weather.xml#list_of_cities</reference>
+		</menuitem>
+		<reference>@newsservice</reference>
+		-->
+
+	</menu>
+</journaline>

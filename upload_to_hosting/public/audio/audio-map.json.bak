@@ -1,0 +1,2 @@
+// This file is deprecated - audio mappings are now stored in MongoDB
+// See models/AudioMapping.js for details
