@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { inlineToPlainText } from '../audio';
-import type { AudioMap, ImageMap } from '../audio';
+import { inlineToPlainText, getAudioUrlFromValue, getAudioFilenameFromValue } from '../audio';
+import type { AudioMap } from '../audio';
+import type { ImageMap } from '../images';
 import type { JournalineDocument, PageNode } from '../types';
 
 type PageMediaMap = Record<string, { audioKey?: string; imageKey?: string }>;
@@ -57,7 +58,6 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
   // Get all pages from document
   const allPages = doc
     ? Object.values(doc.pages)
-        .filter((p) => p.kind === 'page')
         .sort((a, b) => {
           const aTitle = inlineToPlainText(a.title) || '';
           const bTitle = inlineToPlainText(b.title) || '';
@@ -77,10 +77,9 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
         audioKey,
       },
     }));
-    // Get URL from audioMap (uploaded) or baseMedia (base files)
-    const url = audioMap[audioKey] || 
-                combinedAudioItems.find(a => a.key === audioKey)?.url;
-    setPlayingAudio(url || null);
+    // Get URL from combinedAudioItems (already converted to URLs)
+    const url = combinedAudioItems.find(a => a.key === audioKey)?.url || null;
+    setPlayingAudio(url);
   };
 
   const handleImageSelect = (imageKey: string) => {
@@ -108,10 +107,10 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
       url: f.url,
       isBase: true,
     })),
-    ...Object.entries(audioMap).map(([key, url]) => ({
+    ...Object.entries(audioMap).map(([key, value]) => ({
       key,
       name: key,
-      url,
+      url: getAudioUrlFromValue(value),
       isBase: false,
     })),
   ]
@@ -179,7 +178,7 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
               <div className="page-header">
                 <h3>
                   📄{' '}
-                  {inlineToPlainText(currentPage?.title || ['']) || 'Untitled'}
+                  {inlineToPlainText((currentPage?.title as any) || []) || 'Untitled'}
                 </h3>
                 <small>{selectedPageId}</small>
               </div>
@@ -219,8 +218,7 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
                       <div className="audio-preview">
                         <audio
                           ref={audioRef}
-                          src={audioMap[currentMapping.audioKey] || 
-                               combinedAudioItems.find(a => a.key === currentMapping.audioKey)?.url}
+                          src={combinedAudioItems.find(a => a.key === currentMapping.audioKey)?.url || undefined}
                           controls
                           style={{ width: '100%' }}
                         />
@@ -251,7 +249,7 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
                           title={item.isBase ? 'Base image file' : 'Uploaded file'}
                         >
                           <img
-                            src={item.url}
+                            src={item.url as string}
                             alt={item.name}
                             style={{
                               width: '60px',

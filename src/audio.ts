@@ -1,6 +1,7 @@
 import type { JournalineDocument, PageNode } from './types';
 
-export type AudioMap = Record<string, string>;
+export type AudioMapValue = string | { fileId: string; filename: string; originalName: string };
+export type AudioMap = Record<string, AudioMapValue>;
 
 export async function loadAudioMap(sourceLabel: string): Promise<AudioMap> {
   try {
@@ -11,8 +12,8 @@ export async function loadAudioMap(sourceLabel: string): Promise<AudioMap> {
     const res = await fetch(`http://localhost:5001/api/audio-mapping/${xmlName}`);
     if (!res.ok) return {};
     
-    const data = await res.json() as { audioMap?: Record<string, string> };
-    return data.audioMap || {};
+    const data = await res.json() as { audioMap?: Record<string, boolean | string | AudioMapValue> };
+    return (data.audioMap || {}) as AudioMap;
   } catch {
     return {};
   }
@@ -69,11 +70,14 @@ export function resolveAudioUrl(params: {
 }
 
 function createAudioResult(audioMap: AudioMap, key: string) {
-  let audioUrl = audioMap[key];
-  if (audioUrl.startsWith('/')) {
-    audioUrl = `http://localhost:5001${audioUrl}`;
+  const value = audioMap[key];
+  const audioUrl = getAudioUrlFromValue(value);
+  const filename = getAudioFilenameFromValue(value);
+
+  if (!audioUrl) {
+    return { url: null, matchedKey: key, filename: 'unknown.wav', candidates: [] };
   }
-  const filename = audioMap[key].split('/').pop() || 'unknown.wav';
+  
   console.log(`✅ Found match: ${key} → ${filename}`);
   return { url: audioUrl, matchedKey: key, filename, candidates: [] };
 }
@@ -118,6 +122,36 @@ export function inlineToPlainText(nodes: PageNode['title']): string {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+export function getAudioUrlFromValue(value: AudioMapValue): string | null {
+  if (typeof value === 'object' && value !== null && 'fileId' in value) {
+    // It's a fileId object from MongoDB
+    return `http://localhost:5001/api/get-audio?fileId=${value.fileId}`;
+  } else if (typeof value === 'string') {
+    // Check if it's a fileId (MongoDB ObjectId format) or a path
+    const isMongoObjectId = /^[0-9a-f]{24}$/i.test(value);
+    
+    if (isMongoObjectId) {
+      // It's a fileId from MongoDB
+      return `http://localhost:5001/api/get-audio?fileId=${value}`;
+    } else if (value.startsWith('/')) {
+      // It's a file path
+      return `http://localhost:5001${value}`;
+    } else {
+      return value;
+    }
+  }
+  return null;
+}
+
+export function getAudioFilenameFromValue(value: AudioMapValue): string {
+  if (typeof value === 'object' && value !== null && 'originalName' in value) {
+    return value.originalName || value.filename || 'unknown.wav';
+  } else if (typeof value === 'string') {
+    return value.split('/').pop() || 'unknown.wav';
+  }
+  return 'unknown.wav';
 }
 
 function slugify(value: string): string {

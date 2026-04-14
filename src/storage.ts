@@ -1,4 +1,4 @@
-import type { AudioMap } from './audio';
+import type { AudioMap, AudioMapValue } from './audio';
 import type { ImageMap } from './images';
 
 const XML_TEXT_KEY = 'jr_admin_xml_text';

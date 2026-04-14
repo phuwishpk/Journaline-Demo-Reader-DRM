@@ -11,6 +11,8 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import User from './models/User.js';
 import AudioMapping from './models/AudioMapping.js';
+import AudioFile from './models/AudioFile.js';
+import XMLFile from './models/XMLFile.js';
 import { authenticateToken, authorizeAdmin, generateToken } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -213,19 +215,44 @@ app.get('/api/auth/verify-token', authenticateToken, async (req, res) => {
 });
 
 // ============= FILE UPLOAD ENDPOINTS (ADMIN ONLY) =============
-app.post('/api/upload-audio', authenticateToken, authorizeAdmin, upload.single('file'), (req, res) => {
+app.post('/api/upload-audio', authenticateToken, authorizeAdmin, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
-  // Return the file path relative to public folder
-  const filePath = `/admin/audio/${req.file.filename}`;
-  res.json({ 
-    success: true, 
-    path: filePath,
-    filename: req.file.filename,
-    originalName: req.file.originalname
-  });
+  try {
+    // Read file data from disk
+    const fileData = fs.readFileSync(req.file.path);
+
+    // Create MongoDB document
+    const audioFile = new AudioFile({
+      filename: req.file.filename,
+      originalFilename: req.file.originalname,
+      mimeType: req.file.mimetype,
+      fileSize: req.file.size,
+      fileData: fileData,
+      uploadedBy: 'admin',
+    });
+
+    const savedFile = await audioFile.save();
+
+    // Delete file from disk after saving to DB
+    fs.unlinkSync(req.file.path);
+
+    res.json({ 
+      success: true,
+      fileId: savedFile._id,
+      filename: savedFile.filename,
+      originalName: savedFile.originalFilename
+    });
+  } catch (err) {
+    console.error('Audio upload error:', err);
+    // Clean up temp file if exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Failed to save audio file to database' });
+  }
 });
 
 // Upload image file endpoint (admin only)
@@ -245,7 +272,7 @@ app.post('/api/upload-image', authenticateToken, authorizeAdmin, uploadImage.sin
 });
 
 // Upload XML file endpoint (admin only)
-app.post('/api/upload-xml', (req, res) => {
+app.post('/api/upload-xml', authenticateToken, authorizeAdmin, async (req, res) => {
   const { filename, content } = req.body;
   
   if (!filename || !content) {
@@ -255,130 +282,183 @@ app.post('/api/upload-xml', (req, res) => {
   try {
     // Sanitize filename
     const sanitizedName = path.basename(filename);
-    const filePath = path.join(adminDataDir, sanitizedName);
     
-    // Write XML file
-    fs.writeFileSync(filePath, content, 'utf-8');
+    // Check if file already exists
+    let xmlFile = await XMLFile.findOne({ filename: sanitizedName });
+    
+    if (xmlFile) {
+      // Update existing file
+      xmlFile.content = content;
+      xmlFile.fileSize = Buffer.byteLength(content, 'utf-8');
+      xmlFile.uploadedBy = 'admin';
+    } else {
+      // Create new file
+      xmlFile = new XMLFile({
+        filename: sanitizedName,
+        content: content,
+        fileSize: Buffer.byteLength(content, 'utf-8'),
+        uploadedBy: 'admin',
+      });
+    }
+    
+    const savedFile = await xmlFile.save();
     
     res.json({
       success: true,
-      filename: sanitizedName,
+      fileId: savedFile._id,
+      filename: savedFile.filename,
       message: 'XML file saved successfully'
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to save XML file' });
+    console.error('XML upload error:', err);
+    res.status(500).json({ error: 'Failed to save XML file to database' });
   }
 });
 
-// Get saved XMLs list endpoint (admin gets his files, public gets shared files)
-app.get('/api/saved-xmls', (req, res) => {
+// Get saved XMLs list endpoint
+app.get('/api/saved-xmls', async (req, res) => {
   try {
-    let files = [];
+    // Get all XML files from MongoDB
+    const xmlFiles = await XMLFile.find({}, 'filename uploadedBy createdAt fileSize');
     
-    // If authenticated as admin, show admin files
-    if (req.headers.authorization) {
-      try {
-        const token = req.headers.authorization.split(' ')[1];
-        if (token) {
-          files = fs.readdirSync(adminDataDir).filter(file => file.endsWith('.xml')).map(file => ({
-            name: file,
-            label: file,
-            type: 'admin'
-          }));
-        }
-      } catch (e) {
-        // Token invalid or not provided, fall through to shared only
-      }
-    }
-    
-    // Add shared files
-    try {
-      const sharedFiles = fs.readdirSync(sharedDataDir).filter(file => file.endsWith('.xml')).map(file => ({
-        name: file,
-        label: file,
-        type: 'shared'
-      }));
-      files = [...files, ...sharedFiles];
-    } catch (e) {
-      // shared directory might not have files yet
-    }
+    const files = xmlFiles.map(file => ({
+      _id: file._id,
+      name: file.filename,
+      label: file.filename,
+      type: 'database',
+      uploadedBy: file.uploadedBy,
+      createdAt: file.createdAt,
+      fileSize: file.fileSize
+    }));
     
     res.json({
       success: true,
       files: files
     });
   } catch (err) {
+    console.error('Error fetching XML files:', err);
     res.status(500).json({ error: 'Failed to read saved XMLs' });
   }
 });
 
-// Get XML file content endpoint (admin only for admin files)
-app.post('/api/get-xml', (req, res) => {
-  const { filename } = req.body;
+// Get XML file content endpoint
+app.post('/api/get-xml', async (req, res) => {
+  const { filename, fileId } = req.body;
   
-  if (!filename) {
-    return res.status(400).json({ error: 'Missing filename' });
+  if (!filename && !fileId) {
+    return res.status(400).json({ error: 'Missing filename or fileId' });
   }
   
   try {
-    const sanitizedName = path.basename(filename);
-   // First try shared directory
-    let filePath = path.join(sharedDataDir, sanitizedName);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      return res.json({
-        success: true,
-        content: content
-      });
+    let xmlFile;
+    
+    if (fileId) {
+      xmlFile = await XMLFile.findById(fileId);
+    } else {
+      const sanitizedName = path.basename(filename);
+      xmlFile = await XMLFile.findOne({ filename: sanitizedName });
     }
     
-    // Then try admin directory (requires auth)
-    filePath = path.join(adminDataDir, sanitizedName);
-    if (!filePath.startsWith(adminDataDir)) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (!xmlFile) {
+      return res.status(404).json({ error: 'XML file not found' });
     }
     
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      return res.json({
-        success: true,
-        content: content
-      });
-    }
-    
-    res.status(404).json({ error: 'XML file not found' });
+    res.json({
+      success: true,
+      content: xmlFile.content,
+      filename: xmlFile.filename,
+      fileId: xmlFile._id
+    });
   } catch (err) {
-    res.status(404).json({ error: 'XML file not found' });
+    console.error('Error fetching XML file:', err);
+    res.status(500).json({ error: 'Failed to retrieve XML file' });
+  }
+});
+
+// Get audio file endpoint (supports both POST and GET)
+app.post('/api/get-audio', async (req, res) => {
+  const { fileId } = req.body;
+  
+  if (!fileId) {
+    return res.status(400).json({ error: 'Missing fileId' });
+  }
+  
+  try {
+    const audioFile = await AudioFile.findById(fileId);
+    
+    if (!audioFile) {
+      return res.status(404).json({ error: 'Audio file not found' });
+    }
+    
+    // Set response headers for audio streaming
+    res.setHeader('Content-Type', audioFile.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${audioFile.originalFilename}"`);
+    res.setHeader('Content-Length', audioFile.fileData.length);
+    
+    // Send the binary data
+    res.send(audioFile.fileData);
+  } catch (err) {
+    console.error('Error fetching audio file:', err);
+    res.status(500).json({ error: 'Failed to retrieve audio file' });
+  }
+});
+
+// Get audio file endpoint via query parameter (for HTML5 audio tag which uses GET)
+app.get('/api/get-audio', async (req, res) => {
+  const { fileId } = req.query;
+  
+  if (!fileId || typeof fileId !== 'string') {
+    return res.status(400).json({ error: 'Missing fileId' });
+  }
+  
+  try {
+    const audioFile = await AudioFile.findById(fileId);
+    
+    if (!audioFile) {
+      return res.status(404).json({ error: 'Audio file not found' });
+    }
+    
+    // Set response headers for audio streaming
+    res.setHeader('Content-Type', audioFile.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${audioFile.originalFilename}"`);
+    res.setHeader('Content-Length', audioFile.fileData.length);
+    
+    // Send the binary data
+    res.send(audioFile.fileData);
+  } catch (err) {
+    console.error('Error fetching audio file:', err);
+    res.status(500).json({ error: 'Failed to retrieve audio file' });
   }
 });
 
 // Delete XML file endpoint (admin only)
-app.delete('/api/delete-xml', authenticateToken, authorizeAdmin, (req, res) => {
-  const { filename } = req.body;
+app.delete('/api/delete-xml', authenticateToken, authorizeAdmin, async (req, res) => {
+  const { filename, fileId } = req.body;
   
-  if (!filename) {
-    return res.status(400).json({ error: 'Missing filename' });
+  if (!filename && !fileId) {
+    return res.status(400).json({ error: 'Missing filename or fileId' });
   }
   
   try {
-    const sanitizedName = path.basename(filename);
-    const filePath = path.join(adminDataDir, sanitizedName);
+    let result;
     
-    // Prevent directory traversal
-    if (!filePath.startsWith(adminDataDir)) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      res.json({
-        success: true,
-        message: 'XML file deleted successfully'
-      });
+    if (fileId) {
+      result = await XMLFile.findByIdAndDelete(fileId);
     } else {
-      res.status(404).json({ error: 'XML file not found' });
+      const sanitizedName = path.basename(filename);
+      result = await XMLFile.findOneAndDelete({ filename: sanitizedName });
     }
+    
+    if (!result) {
+      return res.status(404).json({ error: 'XML file not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'XML file deleted successfully'
+    });
   } catch (err) {
+    console.error('Error deleting XML file:', err);
     res.status(500).json({ error: 'Failed to delete XML file' });
   }
 });

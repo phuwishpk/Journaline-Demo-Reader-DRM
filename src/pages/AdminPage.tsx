@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { loadAudioMap, type AudioMap } from '../audio';
+import { loadAudioMap, type AudioMap, getAudioFilenameFromValue } from '../audio';
 import JournalineViewer from '../components/JournalineViewer';
 import { buildImageAliases, type ImageMap } from '../images';
 import { SAMPLE_FILES } from '../sampleXml';
@@ -237,8 +237,44 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
       const text = await file.text();
       setXmlText(text);
       setSourceLabel(file.name);
-      setStatus('ready');
-      saveStoredXml(text, file.name);
+
+      // Upload XML to MongoDB
+      if (token) {
+        try {
+          const response = await fetch('http://localhost:5001/api/upload-xml', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              filename: file.name,
+              content: text
+            })
+          });
+
+          if (!response.ok) {
+            console.warn('Failed to upload XML to database');
+            setError('Failed to save XML to database');
+            setStatus('error');
+            event.target.value = '';
+            return;
+          }
+
+          const data = await response.json();
+          console.log(`✅ XML uploaded: ${file.name} (ID: ${data.fileId})`);
+          setStatus('ready');
+          // Also save to localStorage as backup
+          saveStoredXml(text, file.name);
+        } catch (err) {
+          console.error('Error uploading XML:', err);
+          setError('Failed to upload XML file');
+          setStatus('error');
+        }
+      } else {
+        setError('Not authenticated - please login first');
+        setStatus('error');
+      }
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Invalid XML file.');
@@ -276,11 +312,16 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         if (!response.ok) throw new Error('Upload failed');
         
         const data = await response.json();
-        console.log(`📻 Uploaded audio: ${file.name} → ${data.path}`);
+        console.log(`📻 Uploaded audio: ${file.name} → FileID: ${data.fileId}`);
         
         // Store using sourceBase as key (to match MongoDB)
         const sourceBase = sourceLabel.replace(/\.xml$/i, '');
-        nextMap[sourceBase] = data.path;
+        // Store as object with fileId
+        nextMap[sourceBase] = {
+          fileId: data.fileId,
+          filename: data.filename,
+          originalName: data.originalName
+        };
         
         // Save audio mapping to MongoDB (one per XML)
         const mappingResponse = await fetch('http://localhost:5001/api/audio-mapping', {
@@ -291,7 +332,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
           },
           body: JSON.stringify({
             xmlName: sourceLabel,
-            audioPath: data.path,
+            audioPath: data.fileId, // Now store fileId instead of path
             originalFilename: file.name,
             fileSize: file.size
           })
@@ -301,7 +342,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
           console.warn(`⚠️ Failed to save audio mapping for ${sourceLabel}`);
         } else {
           const mappingData = await mappingResponse.json();
-          console.log(`✅ Audio mapping saved: ${sourceLabel} → ${data.path}`);
+          console.log(`✅ Audio mapping saved: ${sourceLabel} → ${data.fileId}`);
         }
       } catch (err) {
         console.error(`❌ Failed to upload ${file.name}:`, err);
@@ -450,8 +491,8 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
             <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(100, 200, 150, 0.1)', borderRadius: '4px' }}>
               <p style={{ margin: '0 0 6px', fontSize: '0.85rem', fontWeight: '500', color: '#4CAF50' }}>✅ Uploaded:</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {Object.entries(uploadedAudioMap).map(([key, path]) => {
-                  const filename = typeof path === 'string' ? path.split('/').pop() || path : path;
+                {Object.entries(uploadedAudioMap).map(([key, audioValue]) => {
+                  const filename = getAudioFilenameFromValue(audioValue);
                   return (
                     <span key={key} style={{ background: 'rgba(76, 175, 80, 0.2)', padding: '4px 8px', borderRadius: '3px', fontSize: '0.8rem', border: '1px solid rgba(76, 175, 80, 0.4)' }}>
                       🎵 {filename}
