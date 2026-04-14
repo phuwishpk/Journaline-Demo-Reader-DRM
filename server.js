@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || process.env.npm_package_config_port || 5001;
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/journaline-reader';
@@ -831,10 +831,15 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`\n✓ Journaline Reader Server running on http://localhost:${PORT}`);
+// Start server
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n✓ Journaline Reader Server running on port ${PORT}`);
   console.log(`  ✓ REST API endpoints available`);
   console.log(`  ✓ Authentication: JWT-based`);
   console.log(`  ✓ MongoDB: ${mongoose.connection.readyState === 1 ? 'connected' : 'connecting...'}\n`);
 });
+
+// Export for potential use in other modules
+export default app;
+export { server };
 
