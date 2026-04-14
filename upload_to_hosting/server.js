@@ -9,11 +9,11 @@ import os from 'os';
 import crypto from 'crypto';
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import User from '../models/User.js';
-import AudioMapping from '../models/AudioMapping.js';
-import AudioFile from '../models/AudioFile.js';
-import XMLFile from '../models/XMLFile.js';
-import { authenticateToken, authorizeAdmin, generateToken } from '../middleware/auth.js';
+import User from './models/User.js';
+import AudioMapping from './models/AudioMapping.js';
+import AudioFile from './models/AudioFile.js';
+import XMLFile from './models/XMLFile.js';
+import { authenticateToken, authorizeAdmin, generateToken } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
