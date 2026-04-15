@@ -12,7 +12,8 @@
     "docker:up": "docker-compose up",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f app",
-    "docker:clean": "docker-compose down -v"
+    "docker:clean": "docker-compose down -v",
+    "test": "echo 'No tests configured yet' ; exit 0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
