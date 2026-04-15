@@ -1,0 +1,24 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # ถ้าเป็นไฟล์หรือตัวดำเนิน อย่ารีไรต์
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # รีไวต์ทั้งหมดไปที่ app.js
+  RewriteRule ^ app.js [QSA,L]
+</IfModule>
+
+# ตั้ง MIME types
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType text/css .css
+  AddType application/json .json
+</IfModule>
+
+# ตั้ง Headers
+<IfModule mod_headers.c>
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-XSS-Protection "1; mode=block"
+</IfModule>
