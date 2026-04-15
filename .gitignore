@@ -6,7 +6,6 @@ pnpm-debug.log
 lerna-debug.log
 
 # Production build
-dist/
 dist-ssr/
 *.local
 
