@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || process.env.npm_package_config_port || 5001;
+const PORT = process.env.PORT || process.env.HTTP_PLATFORM_PORT || process.env.npm_package_config_port || 5001;
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/journaline-reader';
@@ -53,18 +53,22 @@ const sharedAudioDir = path.join(__dirname, 'public', 'shared', 'audio');
 });
 
 // CORS middleware - must be before routes
+const allowedOriginPatterns = [
+  /^https?:\/\/localhost(?::\d+)?$/i,
+  /^https?:\/\/127\.0\.0\.1(?::\d+)?$/i,
+  /^https?:\/\/([a-z0-9-]+\.)?am-drm-radio\.net(?::\d+)?$/i,
+  /^https?:\/\/203\.150\.225\.101(?::\d+)?$/i,
+];
+
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow all localhost ports and development URLs
-    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOriginPatterns.some((re) => re.test(origin))) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Body parser middleware for JSON
