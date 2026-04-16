@@ -8,7 +8,6 @@ import { XMLParser } from 'fast-xml-parser';
 import os from 'os';
 import crypto from 'crypto';
 import 'dotenv/config';
-import mysql from 'mysql2/promise';
 import bcryptjs from 'bcryptjs';
 import { authenticateToken, authorizeAdmin, generateToken } from './middleware/auth.js';
 
@@ -103,8 +102,19 @@ async function connectMySql() {
     return;
   }
 
+  let mysqlDriver;
   try {
-    mysqlState.pool = mysql.createPool({
+    const mod = await import('mysql2/promise');
+    mysqlDriver = mod.default ?? mod;
+  } catch (err) {
+    mysqlState.connected = false;
+    console.error('✗ MySQL driver not installed (missing package: mysql2). Run npm install on the server, then restart the app.');
+    console.error(err);
+    return;
+  }
+
+  try {
+    mysqlState.pool = mysqlDriver.createPool({
       host: MYSQL_HOST,
       port: Number.isFinite(MYSQL_PORT) ? MYSQL_PORT : 3306,
       user: MYSQL_USER,
