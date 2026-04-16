@@ -26,12 +26,12 @@ RUN chmod +x docker-entrypoint.sh
 
 # Expose ports
 # 5173 for Vite dev server (frontend HMR)
-# 5004 for Express server (backend API)
-EXPOSE 5173 5004
+# 5005 for Express server (backend API)
+EXPOSE 5173 5005
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5004/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD node -e "require('http').get('http://localhost:5005/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Run entrypoint script
 CMD ["./docker-entrypoint.sh"]

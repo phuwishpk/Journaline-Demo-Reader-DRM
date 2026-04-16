@@ -7,13 +7,13 @@ services:
     container_name: journaline-app
     ports:
       - "5173:5173"  # Vite dev server (frontend)
-      - "5004:5004"  # Express server (backend API)
+      - "5005:5005"  # Express server (backend API)
     environment:
       # MongoDB connection - use service name 'mongo' for Docker DNS
       - MONGODB_URI=mongodb://mongo:27017/journaline-reader
       - NODE_ENV=development
       - JWT_SECRET=dev-secret-change-in-production
-      - PORT=5004
+      - PORT=5005
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=admin123
     # Mount entire project for hot reload in Vite

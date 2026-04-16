@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || process.env.HTTP_PLATFORM_PORT || process.env.npm_package_config_port || 5004;
+const PORT = process.env.HTTP_PLATFORM_PORT || process.env.PORT || process.env.npm_package_config_port || 5005;
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/journaline-reader';
