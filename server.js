@@ -8,11 +8,8 @@ import { XMLParser } from 'fast-xml-parser';
 import os from 'os';
 import crypto from 'crypto';
 import 'dotenv/config';
-import mongoose from 'mongoose';
-import User from './models/User.js';
-import AudioMapping from './models/AudioMapping.js';
-import AudioFile from './models/AudioFile.js';
-import XMLFile from './models/XMLFile.js';
+import mysql from 'mysql2/promise';
+import bcryptjs from 'bcryptjs';
 import { authenticateToken, authorizeAdmin, generateToken } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,20 +18,124 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.HTTP_PLATFORM_PORT || process.env.PORT || process.env.npm_package_config_port || 5005;
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/journaline-reader';
+// MySQL connection (primary database)
+const MYSQL_HOST = process.env.MYSQL_HOST;
+const MYSQL_PORT = Number.parseInt(process.env.MYSQL_PORT || '3306', 10);
+const MYSQL_DATABASE = process.env.MYSQL_DATABASE;
+const MYSQL_USER = process.env.MYSQL_USER;
+const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD;
 
-async function connectDB() {
+const mysqlState = {
+  pool: null,
+  connected: false,
+};
+
+function isMySqlConfigured() {
+  return Boolean(MYSQL_HOST && MYSQL_DATABASE && MYSQL_USER);
+}
+
+async function ensureMySqlSchema() {
+  if (!mysqlState.pool) return;
+
+  await mysqlState.pool.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(64) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      role ENUM('admin', 'public') NOT NULL DEFAULT 'public',
+      last_login DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_users_username (username),
+      UNIQUE KEY uniq_users_email (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await mysqlState.pool.execute(`
+    CREATE TABLE IF NOT EXISTS xml_files (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      filename VARCHAR(255) NOT NULL,
+      content LONGTEXT NOT NULL,
+      uploaded_by VARCHAR(64) NOT NULL DEFAULT 'admin',
+      file_size INT UNSIGNED NOT NULL,
+      description VARCHAR(255) NOT NULL DEFAULT '',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_xml_filename (filename)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await mysqlState.pool.execute(`
+    CREATE TABLE IF NOT EXISTS audio_files (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      filename VARCHAR(255) NOT NULL,
+      original_filename VARCHAR(255) NOT NULL,
+      mime_type VARCHAR(64) NOT NULL,
+      file_size INT UNSIGNED NOT NULL,
+      file_data LONGBLOB NOT NULL,
+      uploaded_by VARCHAR(64) NOT NULL DEFAULT 'admin',
+      description VARCHAR(255) NOT NULL DEFAULT '',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_audio_filename (filename)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await mysqlState.pool.execute(`
+    CREATE TABLE IF NOT EXISTS audio_mappings (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      xml_name VARCHAR(255) NOT NULL,
+      audio_path VARCHAR(1024) NOT NULL,
+      uploaded_by VARCHAR(64) NOT NULL DEFAULT 'admin',
+      original_filename VARCHAR(255) NULL,
+      file_size INT UNSIGNED NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_audio_mapping_xml (xml_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+}
+
+async function connectMySql() {
+  if (!isMySqlConfigured()) {
+    console.warn('⚠️  MySQL is not configured (missing MYSQL_HOST/MYSQL_DATABASE/MYSQL_USER). Database features will be unavailable.');
+    return;
+  }
+
   try {
-    await mongoose.connect(MONGODB_URI);
-    console.log('✓ MongoDB connected');
+    mysqlState.pool = mysql.createPool({
+      host: MYSQL_HOST,
+      port: Number.isFinite(MYSQL_PORT) ? MYSQL_PORT : 3306,
+      user: MYSQL_USER,
+      password: MYSQL_PASSWORD,
+      database: MYSQL_DATABASE,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      charset: 'utf8mb4',
+    });
+
+    await mysqlState.pool.query('SELECT 1');
+    mysqlState.connected = true;
+    console.log('✓ MySQL connected');
+
+    await ensureMySqlSchema();
   } catch (err) {
-    console.error('✗ MongoDB connection failed:', err);
-    // Continue anyway - non-auth features still work
+    mysqlState.connected = false;
+    console.error('✗ MySQL connection failed:', err);
   }
 }
 
-connectDB();
+function requireMySql(res) {
+  if (!mysqlState.pool || !mysqlState.connected) {
+    res.status(503).json({ error: 'Database unavailable' });
+    return null;
+  }
+  return mysqlState.pool;
+}
+
+void connectMySql();
 
 // Ensure admin directories exist
 const adminDataDir = path.join(__dirname, 'public', 'admin', 'data');
@@ -146,22 +247,33 @@ const uploadImage = multer({
 
 // ============= AUTHENTICATION ENDPOINTS =============
 
+const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const allowDefaultAdmin = !isProduction || (process.env.ALLOW_DEFAULT_ADMIN || '').toLowerCase() === 'true';
+const defaultAdminUsername = process.env.ADMIN_USERNAME || 'admin';
+const defaultAdminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
 // Login endpoint
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body ?? {};
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    // Check for default admin account
-    if (username === 'admin' && password === 'admin123') {
+    const trimmedUsername = String(username).trim();
+
+    // Default admin account (development only unless explicitly enabled)
+    if (
+      allowDefaultAdmin &&
+      trimmedUsername === defaultAdminUsername &&
+      String(password) === defaultAdminPassword
+    ) {
       const adminUser = {
         _id: 'admin-user',
-        username: 'admin',
+        username: defaultAdminUsername,
         email: 'admin@journaline.local',
-        role: 'admin'
+        role: 'admin',
       };
       const token = generateToken(adminUser);
 
@@ -169,35 +281,48 @@ app.post('/api/auth/login', async (req, res) => {
         success: true,
         token,
         user: {
-          username: 'admin',
-          email: 'admin@journaline.local',
-          role: 'admin'
+          username: adminUser.username,
+          email: adminUser.email,
+          role: adminUser.role,
         },
       });
     }
 
-    // Check MongoDB users (if database is available)
-    const user = await User.findOne({ username });
+    const pool = requireMySql(res);
+    if (!pool) return;
+
+    const [rows] = await pool.execute(
+      'SELECT id, username, email, password_hash, role FROM users WHERE username = ? LIMIT 1',
+      [trimmedUsername]
+    );
+
+    const user = Array.isArray(rows) ? rows[0] : null;
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = await bcryptjs.compare(String(password), user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    await pool.execute('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
 
-    // Generate token
-    const token = generateToken(user);
+    const token = generateToken({
+      _id: String(user.id),
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    });
 
     res.json({
       success: true,
       token,
-      user: user.toJSON(),
+      user: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -208,14 +333,42 @@ app.post('/api/auth/login', async (req, res) => {
 // Verify token endpoint
 app.get('/api/auth/verify-token', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    if (allowDefaultAdmin && req.user?.id === 'admin-user') {
+      return res.json({
+        success: true,
+        user: {
+          username: defaultAdminUsername,
+          email: 'admin@journaline.local',
+          role: 'admin',
+        },
+      });
+    }
+
+    const pool = requireMySql(res);
+    if (!pool) return;
+
+    const userId = Number.parseInt(String(req.user?.id || ''), 10);
+    if (!Number.isFinite(userId)) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    const [rows] = await pool.execute(
+      'SELECT id, username, email, role FROM users WHERE id = ? LIMIT 1',
+      [userId]
+    );
+
+    const user = Array.isArray(rows) ? rows[0] : null;
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
 
     res.json({
       success: true,
-      user: user.toJSON(),
+      user: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error('Verify token error:', err);
@@ -229,30 +382,34 @@ app.post('/api/upload-audio', authenticateToken, authorizeAdmin, upload.single('
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
+  const pool = requireMySql(res);
+  if (!pool) return;
+
   try {
     // Read file data from disk
     const fileData = fs.readFileSync(req.file.path);
 
-    // Create MongoDB document
-    const audioFile = new AudioFile({
-      filename: req.file.filename,
-      originalFilename: req.file.originalname,
-      mimeType: req.file.mimetype,
-      fileSize: req.file.size,
-      fileData: fileData,
-      uploadedBy: 'admin',
-    });
+    const [result] = await pool.execute(
+      'INSERT INTO audio_files (filename, original_filename, mime_type, file_size, file_data, uploaded_by, description) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        req.file.filename,
+        req.file.originalname,
+        req.file.mimetype,
+        req.file.size,
+        fileData,
+        req.user?.username || 'admin',
+        '',
+      ]
+    );
 
-    const savedFile = await audioFile.save();
-
-    // Delete file from disk after saving to DB
+    // Delete temp file from disk after saving to DB
     fs.unlinkSync(req.file.path);
 
-    res.json({ 
+    res.json({
       success: true,
-      fileId: savedFile._id,
-      filename: savedFile.filename,
-      originalName: savedFile.originalFilename
+      fileId: String(result.insertId),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
     });
   } catch (err) {
     console.error('Audio upload error:', err);
@@ -282,41 +439,44 @@ app.post('/api/upload-image', authenticateToken, authorizeAdmin, uploadImage.sin
 
 // Upload XML file endpoint (admin only)
 app.post('/api/upload-xml', authenticateToken, authorizeAdmin, async (req, res) => {
-  const { filename, content } = req.body;
-  
+  const { filename, content } = req.body ?? {};
+
   if (!filename || !content) {
     return res.status(400).json({ error: 'Missing filename or content' });
   }
-  
+
+  const pool = requireMySql(res);
+  if (!pool) return;
+
   try {
     // Sanitize filename
-    const sanitizedName = path.basename(filename);
-    
-    // Check if file already exists
-    let xmlFile = await XMLFile.findOne({ filename: sanitizedName });
-    
-    if (xmlFile) {
-      // Update existing file
-      xmlFile.content = content;
-      xmlFile.fileSize = Buffer.byteLength(content, 'utf-8');
-      xmlFile.uploadedBy = 'admin';
-    } else {
-      // Create new file
-      xmlFile = new XMLFile({
-        filename: sanitizedName,
-        content: content,
-        fileSize: Buffer.byteLength(content, 'utf-8'),
-        uploadedBy: 'admin',
-      });
-    }
-    
-    const savedFile = await xmlFile.save();
-    
+    const sanitizedName = path.basename(String(filename));
+    const xmlContent = String(content);
+    const fileSize = Buffer.byteLength(xmlContent, 'utf-8');
+
+    await pool.execute(
+      `INSERT INTO xml_files (filename, content, uploaded_by, file_size, description)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         content = VALUES(content),
+         uploaded_by = VALUES(uploaded_by),
+         file_size = VALUES(file_size),
+         updated_at = CURRENT_TIMESTAMP`,
+      [sanitizedName, xmlContent, req.user?.username || 'admin', fileSize, '']
+    );
+
+    const [rows] = await pool.execute(
+      'SELECT id, filename FROM xml_files WHERE filename = ? LIMIT 1',
+      [sanitizedName]
+    );
+
+    const saved = Array.isArray(rows) ? rows[0] : null;
+
     res.json({
       success: true,
-      fileId: savedFile._id,
-      filename: savedFile.filename,
-      message: 'XML file saved successfully'
+      fileId: saved ? String(saved.id) : null,
+      filename: saved ? saved.filename : sanitizedName,
+      message: 'XML file saved successfully',
     });
   } catch (err) {
     console.error('XML upload error:', err);
@@ -326,23 +486,27 @@ app.post('/api/upload-xml', authenticateToken, authorizeAdmin, async (req, res) 
 
 // Get saved XMLs list endpoint
 app.get('/api/saved-xmls', async (req, res) => {
+  const pool = requireMySql(res);
+  if (!pool) return;
+
   try {
-    // Get all XML files from MongoDB
-    const xmlFiles = await XMLFile.find({}, 'filename uploadedBy createdAt fileSize');
-    
-    const files = xmlFiles.map(file => ({
-      _id: file._id,
+    const [rows] = await pool.execute(
+      'SELECT id, filename, uploaded_by, created_at, file_size FROM xml_files ORDER BY created_at DESC'
+    );
+
+    const files = (Array.isArray(rows) ? rows : []).map((file) => ({
+      _id: String(file.id),
       name: file.filename,
       label: file.filename,
       type: 'database',
-      uploadedBy: file.uploadedBy,
-      createdAt: file.createdAt,
-      fileSize: file.fileSize
+      uploadedBy: file.uploaded_by,
+      createdAt: file.created_at,
+      fileSize: file.file_size,
     }));
-    
+
     res.json({
       success: true,
-      files: files
+      files,
     });
   } catch (err) {
     console.error('Error fetching XML files:', err);
@@ -352,31 +516,47 @@ app.get('/api/saved-xmls', async (req, res) => {
 
 // Get XML file content endpoint
 app.post('/api/get-xml', async (req, res) => {
-  const { filename, fileId } = req.body;
-  
+  const { filename, fileId } = req.body ?? {};
+
   if (!filename && !fileId) {
     return res.status(400).json({ error: 'Missing filename or fileId' });
   }
-  
+
+  const pool = requireMySql(res);
+  if (!pool) return;
+
   try {
-    let xmlFile;
-    
+    let row = null;
+
     if (fileId) {
-      xmlFile = await XMLFile.findById(fileId);
+      const id = Number.parseInt(String(fileId), 10);
+      if (!Number.isFinite(id)) {
+        return res.status(400).json({ error: 'Invalid fileId' });
+      }
+
+      const [rows] = await pool.execute(
+        'SELECT id, filename, content FROM xml_files WHERE id = ? LIMIT 1',
+        [id]
+      );
+      row = Array.isArray(rows) ? rows[0] : null;
     } else {
-      const sanitizedName = path.basename(filename);
-      xmlFile = await XMLFile.findOne({ filename: sanitizedName });
+      const sanitizedName = path.basename(String(filename));
+      const [rows] = await pool.execute(
+        'SELECT id, filename, content FROM xml_files WHERE filename = ? LIMIT 1',
+        [sanitizedName]
+      );
+      row = Array.isArray(rows) ? rows[0] : null;
     }
-    
-    if (!xmlFile) {
+
+    if (!row) {
       return res.status(404).json({ error: 'XML file not found' });
     }
-    
+
     res.json({
       success: true,
-      content: xmlFile.content,
-      filename: xmlFile.filename,
-      fileId: xmlFile._id
+      content: row.content,
+      filename: row.filename,
+      fileId: String(row.id),
     });
   } catch (err) {
     console.error('Error fetching XML file:', err);
@@ -386,26 +566,40 @@ app.post('/api/get-xml', async (req, res) => {
 
 // Get audio file endpoint (supports both POST and GET)
 app.post('/api/get-audio', async (req, res) => {
-  const { fileId } = req.body;
-  
+  const { fileId } = req.body ?? {};
+
   if (!fileId) {
     return res.status(400).json({ error: 'Missing fileId' });
   }
-  
+
+  const pool = requireMySql(res);
+  if (!pool) return;
+
+  const id = Number.parseInt(String(fileId), 10);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: 'Invalid fileId' });
+  }
+
   try {
-    const audioFile = await AudioFile.findById(fileId);
-    
+    const [rows] = await pool.execute(
+      'SELECT original_filename, mime_type, file_data FROM audio_files WHERE id = ? LIMIT 1',
+      [id]
+    );
+
+    const audioFile = Array.isArray(rows) ? rows[0] : null;
     if (!audioFile) {
       return res.status(404).json({ error: 'Audio file not found' });
     }
-    
-    // Set response headers for audio streaming
-    res.setHeader('Content-Type', audioFile.mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${audioFile.originalFilename}"`);
-    res.setHeader('Content-Length', audioFile.fileData.length);
-    
-    // Send the binary data
-    res.send(audioFile.fileData);
+
+    const safeName = path
+      .basename(String(audioFile.original_filename || 'audio.wav'))
+      .replace(/["\r\n]/g, '_');
+
+    res.setHeader('Content-Type', audioFile.mime_type);
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+    res.setHeader('Content-Length', audioFile.file_data.length);
+
+    res.send(audioFile.file_data);
   } catch (err) {
     console.error('Error fetching audio file:', err);
     res.status(500).json({ error: 'Failed to retrieve audio file' });
@@ -414,26 +608,40 @@ app.post('/api/get-audio', async (req, res) => {
 
 // Get audio file endpoint via query parameter (for HTML5 audio tag which uses GET)
 app.get('/api/get-audio', async (req, res) => {
-  const { fileId } = req.query;
-  
-  if (!fileId || typeof fileId !== 'string') {
+  const fileId = typeof req.query.fileId === 'string' ? req.query.fileId : null;
+
+  if (!fileId) {
     return res.status(400).json({ error: 'Missing fileId' });
   }
-  
+
+  const pool = requireMySql(res);
+  if (!pool) return;
+
+  const id = Number.parseInt(String(fileId), 10);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ error: 'Invalid fileId' });
+  }
+
   try {
-    const audioFile = await AudioFile.findById(fileId);
-    
+    const [rows] = await pool.execute(
+      'SELECT original_filename, mime_type, file_data FROM audio_files WHERE id = ? LIMIT 1',
+      [id]
+    );
+
+    const audioFile = Array.isArray(rows) ? rows[0] : null;
     if (!audioFile) {
       return res.status(404).json({ error: 'Audio file not found' });
     }
-    
-    // Set response headers for audio streaming
-    res.setHeader('Content-Type', audioFile.mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${audioFile.originalFilename}"`);
-    res.setHeader('Content-Length', audioFile.fileData.length);
-    
-    // Send the binary data
-    res.send(audioFile.fileData);
+
+    const safeName = path
+      .basename(String(audioFile.original_filename || 'audio.wav'))
+      .replace(/["\r\n]/g, '_');
+
+    res.setHeader('Content-Type', audioFile.mime_type);
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+    res.setHeader('Content-Length', audioFile.file_data.length);
+
+    res.send(audioFile.file_data);
   } catch (err) {
     console.error('Error fetching audio file:', err);
     res.status(500).json({ error: 'Failed to retrieve audio file' });
@@ -442,29 +650,39 @@ app.get('/api/get-audio', async (req, res) => {
 
 // Delete XML file endpoint (admin only)
 app.delete('/api/delete-xml', authenticateToken, authorizeAdmin, async (req, res) => {
-  const { filename, fileId } = req.body;
-  
+  const { filename, fileId } = req.body ?? {};
+
   if (!filename && !fileId) {
     return res.status(400).json({ error: 'Missing filename or fileId' });
   }
-  
+
+  const pool = requireMySql(res);
+  if (!pool) return;
+
   try {
-    let result;
-    
+    let affectedRows = 0;
+
     if (fileId) {
-      result = await XMLFile.findByIdAndDelete(fileId);
+      const id = Number.parseInt(String(fileId), 10);
+      if (!Number.isFinite(id)) {
+        return res.status(400).json({ error: 'Invalid fileId' });
+      }
+
+      const [result] = await pool.execute('DELETE FROM xml_files WHERE id = ? LIMIT 1', [id]);
+      affectedRows = result.affectedRows || 0;
     } else {
-      const sanitizedName = path.basename(filename);
-      result = await XMLFile.findOneAndDelete({ filename: sanitizedName });
+      const sanitizedName = path.basename(String(filename));
+      const [result] = await pool.execute('DELETE FROM xml_files WHERE filename = ? LIMIT 1', [sanitizedName]);
+      affectedRows = result.affectedRows || 0;
     }
-    
-    if (!result) {
+
+    if (!affectedRows) {
       return res.status(404).json({ error: 'XML file not found' });
     }
-    
+
     res.json({
       success: true,
-      message: 'XML file deleted successfully'
+      message: 'XML file deleted successfully',
     });
   } catch (err) {
     console.error('Error deleting XML file:', err);
@@ -676,80 +894,54 @@ app.post('/api/validate-xml', (req, res) => {
   }
 });
 
-// ============= AUDIO MAPPING ENDPOINTS (MONGODB) =============
+// ============= AUDIO MAPPING ENDPOINTS (MYSQL + FILE FALLBACK) =============
 
-// Save audio mapping - links XML + pageId to audio file
+// Save audio mapping - links XML to audio file (path or uploaded fileId)
 app.post('/api/audio-mapping', authenticateToken, authorizeAdmin, async (req, res) => {
-  try {
-    const { xmlName, audioPath, originalFilename, fileSize } = req.body;
-    
-    if (!xmlName || !audioPath) {
-      return res.status(400).json({ error: 'Missing xmlName or audioPath' });
-    }
+  const { xmlName, audioPath, originalFilename, fileSize } = req.body ?? {};
 
-    let saved = false;
-    
-    // Try to save to MongoDB first
-    try {
-      const updated = await AudioMapping.findOneAndUpdate(
-        { xmlName },
-        { 
-          xmlName,
-          audioPath,
-          originalFilename,
-          fileSize,
-          uploadedBy: req.user?.username || 'admin'
-        },
-        { upsert: true, new: true }
-      );
-      
-      res.json({
-        success: true,
-        message: 'Audio mapping saved',
-        mapping: updated.toJSON()
-      });
-      saved = true;
-    } catch (mongoErr) {
-      console.warn('MongoDB unavailable, trying JSON file fallback:', mongoErr.message);
-    }
-    
-    // If MongoDB failed, save to JSON file as fallback
-    if (!saved) {
-      try {
-        const audioMapPath = path.join(__dirname, 'public', 'audio', 'audio-map.json');
-        let mapData = {};
-        
-        // Read existing mappings
-        if (fs.existsSync(audioMapPath)) {
-          try {
-            mapData = JSON.parse(fs.readFileSync(audioMapPath, 'utf-8'));
-          } catch (e) {
-            mapData = {};
-          }
-        }
-        
-        // Add/update the mapping using xmlName as key
-        mapData[xmlName] = audioPath;
-        
-        // Write back to file
-        fs.writeFileSync(audioMapPath, JSON.stringify(mapData, null, 2), 'utf-8');
-        
-        res.json({
-          success: true,
-          message: 'Audio mapping saved to file (MongoDB unavailable)',
-          mapping: {
-            xmlName,
-            audioPath,
-            originalFilename,
-            fileSize,
-            uploadedBy: req.user?.username || 'admin'
-          }
-        });
-      } catch (fileErr) {
-        console.error('Failed to save audio mapping to file:', fileErr);
-        res.status(500).json({ error: 'Failed to save audio mapping to either MongoDB or file' });
-      }
-    }
+  if (!xmlName || !audioPath) {
+    return res.status(400).json({ error: 'Missing xmlName or audioPath' });
+  }
+
+  const pool = requireMySql(res);
+  if (!pool) return;
+
+  const xmlNameKey = path.basename(String(xmlName)).toLowerCase();
+  const uploadedBy = req.user?.username || 'admin';
+  const parsedFileSize = fileSize == null ? null : Number(fileSize);
+  const safeFileSize = Number.isFinite(parsedFileSize) ? parsedFileSize : null;
+
+  try {
+    await pool.execute(
+      `INSERT INTO audio_mappings (xml_name, audio_path, original_filename, file_size, uploaded_by)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         audio_path = VALUES(audio_path),
+         original_filename = VALUES(original_filename),
+         file_size = VALUES(file_size),
+         uploaded_by = VALUES(uploaded_by),
+         updated_at = CURRENT_TIMESTAMP`,
+      [
+        xmlNameKey,
+        String(audioPath),
+        originalFilename ? String(originalFilename) : null,
+        safeFileSize,
+        uploadedBy,
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: 'Audio mapping saved',
+      mapping: {
+        xmlName: xmlNameKey,
+        audioPath: String(audioPath),
+        originalFilename: originalFilename ? String(originalFilename) : null,
+        fileSize: safeFileSize,
+        uploadedBy,
+      },
+    });
   } catch (err) {
     console.error('Audio mapping error:', err);
     res.status(500).json({ error: 'Failed to save audio mapping' });
@@ -759,43 +951,82 @@ app.post('/api/audio-mapping', authenticateToken, authorizeAdmin, async (req, re
 // Get audio mapping for XML file
 app.get('/api/audio-mapping/:xmlName', async (req, res) => {
   try {
-    const { xmlName } = req.params;
-    
-    let audioMap = {};
-    
-    // Try MongoDB first
-    try {
-      const mapping = await AudioMapping.findOne({ xmlName });
-      if (mapping) {
-        const sourceBase = xmlName.replace(/\.xml$/i, '');
-        audioMap[sourceBase] = mapping.audioPath;
-      }
-    } catch (mongoErr) {
-      console.warn('MongoDB unavailable, trying fallback...');
-    }
-    
-    // If MongoDB didn't return anything or is unavailable, try JSON file fallback
-    if (Object.keys(audioMap).length === 0) {
-      const audioMapPath = path.join(__dirname, 'public', 'audio', 'audio-map.json');
-      if (fs.existsSync(audioMapPath)) {
-        try {
-          const mapData = JSON.parse(fs.readFileSync(audioMapPath, 'utf-8'));
-          // Filter mappings for this XML - keys start with "xmlname::" or are standalone keys
-          for (const [key, value] of Object.entries(mapData)) {
-            // Match keys that start with this XML's full name (with .xml)
-            if (key.startsWith(xmlName + '::') || key.startsWith(xmlName.replace(/\.xml$/i, '') + '::')) {
-              audioMap[key] = value;
-            }
+    const requestedXmlName = path.basename(String(req.params.xmlName || '')).toLowerCase();
+    const requestedBase = requestedXmlName.replace(/\.xml$/i, '');
+
+    const audioMap = {};
+
+    // 1) MySQL (xml-level mapping)
+    if (mysqlState.connected && mysqlState.pool) {
+      try {
+        const [rows] = await mysqlState.pool.execute(
+          'SELECT audio_path, original_filename FROM audio_mappings WHERE xml_name = ? LIMIT 1',
+          [requestedXmlName]
+        );
+
+        const mapping = Array.isArray(rows) ? rows[0] : null;
+        if (mapping && mapping.audio_path) {
+          const audioPath = String(mapping.audio_path);
+
+          if (audioPath.startsWith('/')) {
+            audioMap[requestedBase] = audioPath;
+          } else if (/^\d+$/.test(audioPath)) {
+            const name = mapping.original_filename ? String(mapping.original_filename) : 'audio.wav';
+            audioMap[requestedBase] = { fileId: audioPath, filename: name, originalName: name };
+          } else {
+            audioMap[requestedBase] = audioPath;
           }
-        } catch (jsonErr) {
-          console.warn('Failed to parse audio-map.json:', jsonErr);
         }
+      } catch (dbErr) {
+        console.warn('MySQL unavailable, falling back to audio-map.json');
+      }
+    }
+
+    // 2) JSON file fallback (per-page + xml-level mappings)
+    const audioMapPath = path.join(__dirname, 'public', 'audio', 'audio-map.json');
+    if (fs.existsSync(audioMapPath)) {
+      try {
+        const mapData = JSON.parse(fs.readFileSync(audioMapPath, 'utf-8'));
+
+        for (const [key, rawValue] of Object.entries(mapData)) {
+          if (typeof key !== 'string') continue;
+
+          const keyLower = key.toLowerCase();
+          const matches =
+            keyLower === requestedXmlName ||
+            keyLower === requestedBase ||
+            keyLower.startsWith(requestedXmlName + '::') ||
+            keyLower.startsWith(requestedBase + '::');
+
+          if (!matches) continue;
+
+          // Normalize xml prefix to lower-case for consistent client matching
+          let normalizedKey = key;
+          const sepIndex = key.indexOf('::');
+          if (sepIndex !== -1) {
+            normalizedKey = `${key.slice(0, sepIndex).toLowerCase()}${key.slice(sepIndex)}`;
+          } else if (/\.xml$/i.test(key)) {
+            normalizedKey = keyLower;
+          } else if (keyLower === requestedBase) {
+            normalizedKey = requestedBase;
+          }
+
+          // Normalize numeric fileId values to object form for frontend
+          let value = rawValue;
+          if (typeof rawValue === 'string' && /^\d+$/.test(rawValue)) {
+            value = { fileId: rawValue, filename: 'audio.wav', originalName: 'audio.wav' };
+          }
+
+          audioMap[normalizedKey] = value;
+        }
+      } catch (jsonErr) {
+        console.warn('Failed to parse audio-map.json:', jsonErr);
       }
     }
 
     res.json({
       success: true,
-      audioMap: audioMap
+      audioMap,
     });
   } catch (err) {
     console.error('Audio mapping lookup error:', err);
@@ -805,19 +1036,22 @@ app.get('/api/audio-mapping/:xmlName', async (req, res) => {
 
 // Delete audio mapping for XML
 app.delete('/api/audio-mapping/:xmlName', authenticateToken, authorizeAdmin, async (req, res) => {
+  const pool = requireMySql(res);
+  if (!pool) return;
+
+  const requestedXmlName = path.basename(String(req.params.xmlName || '')).toLowerCase();
+
   try {
-    const { xmlName } = req.params;
-    
-    const mapping = await AudioMapping.findOneAndDelete({ xmlName });
-    
-    if (!mapping) {
+    const [result] = await pool.execute('DELETE FROM audio_mappings WHERE xml_name = ? LIMIT 1', [requestedXmlName]);
+    const affectedRows = result.affectedRows || 0;
+
+    if (!affectedRows) {
       return res.status(404).json({ error: 'Audio mapping not found' });
     }
 
     res.json({
       success: true,
       message: 'Audio mapping deleted',
-      mapping: mapping.toJSON()
     });
   } catch (err) {
     console.error('Audio mapping deletion error:', err);
@@ -827,7 +1061,7 @@ app.delete('/api/audio-mapping/:xmlName', authenticateToken, authorizeAdmin, asy
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+  res.json({ status: 'ok', mysql: mysqlState.connected ? 'connected' : 'disconnected' });
 });
 
 // SPA fallback - serve index.html for all non-API routes
@@ -840,7 +1074,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n✓ Journaline Reader Server running on port ${PORT}`);
   console.log(`  ✓ REST API endpoints available`);
   console.log(`  ✓ Authentication: JWT-based`);
-  console.log(`  ✓ MongoDB: ${mongoose.connection.readyState === 1 ? 'connected' : 'connecting...'}\n`);
+  console.log(`  ✓ MySQL: ${mysqlState.connected ? 'connected' : 'disconnected'}\n`);
 });
 
 server.on('error', (err) => {
