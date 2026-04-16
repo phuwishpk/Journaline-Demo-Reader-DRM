@@ -30,7 +30,7 @@ export default function MediaMapper({ doc, audioMap, imageMap, onSave }: Props) 
   useEffect(() => {
     const fetchBaseMedia = async () => {
       try {
-        const res = await fetch('http://localhost:5001/api/media/list');
+        const res = await fetch('/api/media/list');
         if (res.ok) {
           const data = await res.json();
           console.log('📊 Fetched base media:', data);

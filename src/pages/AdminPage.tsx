@@ -92,7 +92,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     
     const fetchMatchingMedia = async () => {
       try {
-        const response = await fetch(`http://localhost:5001/api/media/by-xmlname?name=${encodeURIComponent(xmlStem)}`);
+        const response = await fetch(`/api/media/by-xmlname?name=${encodeURIComponent(xmlStem)}`);
         if (!response.ok) throw new Error('Failed to fetch media');
         const data = await response.json();
         
@@ -213,9 +213,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
     setStatus('loading');
     setError('');
     try {
-      // Fetch from public folder via static server on port 5001
-      const fullUrl = `http://localhost:5001${path}`;
-      const response = await fetch(fullUrl);
+      const response = await fetch(path);
       if (!response.ok) throw new Error(`Failed to load ${label}`);
       const text = await response.text();
       setXmlText(text);
@@ -241,7 +239,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
       // Upload XML to MongoDB
       if (token) {
         try {
-          const response = await fetch('http://localhost:5001/api/upload-xml', {
+          const response = await fetch('/api/upload-xml', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -301,7 +299,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         const formData = new FormData();
         formData.append('file', file);
         
-        const response = await fetch('http://localhost:5001/api/upload-audio', {
+        const response = await fetch('/api/upload-audio', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -324,7 +322,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         };
         
         // Save audio mapping to MongoDB (one per XML)
-        const mappingResponse = await fetch('http://localhost:5001/api/audio-mapping', {
+        const mappingResponse = await fetch('/api/audio-mapping', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -374,7 +372,7 @@ export default function AdminPage({ onNavigatePublic }: { onNavigatePublic: () =
         const formData = new FormData();
         formData.append('file', file);
         
-        const response = await fetch('http://localhost:5001/api/upload-image', {
+        const response = await fetch('/api/upload-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`

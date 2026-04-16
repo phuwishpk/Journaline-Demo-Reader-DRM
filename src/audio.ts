@@ -8,8 +8,7 @@ export async function loadAudioMap(sourceLabel: string): Promise<AudioMap> {
     // Extract XML filename from sourceLabel
     const xmlName = sourceLabel.replace(/\.xml$/, '') + '.xml';
     
-    // Fetch from backend server on port 5001 - now from MongoDB
-    const res = await fetch(`http://localhost:5001/api/audio-mapping/${xmlName}`);
+    const res = await fetch(`/api/audio-mapping/${encodeURIComponent(xmlName)}`);
     if (!res.ok) return {};
     
     const data = await res.json() as { audioMap?: Record<string, boolean | string | AudioMapValue> };
@@ -127,17 +126,17 @@ export function inlineToPlainText(nodes: PageNode['title']): string {
 export function getAudioUrlFromValue(value: AudioMapValue): string | null {
   if (typeof value === 'object' && value !== null && 'fileId' in value) {
     // It's a fileId object from MongoDB
-    return `http://localhost:5001/api/get-audio?fileId=${value.fileId}`;
+    return `/api/get-audio?fileId=${value.fileId}`;
   } else if (typeof value === 'string') {
     // Check if it's a fileId (MongoDB ObjectId format) or a path
     const isMongoObjectId = /^[0-9a-f]{24}$/i.test(value);
     
     if (isMongoObjectId) {
       // It's a fileId from MongoDB
-      return `http://localhost:5001/api/get-audio?fileId=${value}`;
+      return `/api/get-audio?fileId=${value}`;
     } else if (value.startsWith('/')) {
       // It's a file path
-      return `http://localhost:5001${value}`;
+      return value;
     } else {
       return value;
     }

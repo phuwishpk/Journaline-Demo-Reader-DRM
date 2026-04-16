@@ -846,7 +846,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 server.on('error', (err) => {
   if (err && typeof err === 'object' && 'code' in err && err.code === 'EADDRINUSE') {
     console.error(`✗ Port ${PORT} is already in use (EADDRINUSE).`);
-    console.error('  - Change PORT in .env (local) or set PORT/HTTP_PLATFORM_PORT (hosting), then restart.');
+    console.error('  - Set PORT/HTTP_PLATFORM_PORT in hosting, or change PORT locally in .env, then restart.');
     process.exit(1);
   }
   throw err;
