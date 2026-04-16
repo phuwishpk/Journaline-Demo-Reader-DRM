@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journaline xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Journaline.xsd">
+
+  <fileinfo>
+    <description>ตัวอย่าง Journaline XML ภาษาไทย สำหรับ E-Learning โดยใช้ลิงก์รูปภาพออนไลน์</description>
+    <version>1.0.0</version>
+    <author>OpenAI</author>
+    <note>โครงสร้างตัวอย่างนี้ใช้รูปภาพจากลิงก์ออนไลน์ เพื่อเดโมการอ่าน XML แล้วคง layout เดิมของ UI</note>
+  </fileinfo>
+
+  <menu idString="drm_journaline_root" static="true">
+    <title>บริการ Journaline DRM</title>
+
+    <menuitem>
+      <itemlabel>วิทยุการศึกษา DRM</itemlabel>
+      <menu idString="drm_education_radio" static="true">
+        <title>วิทยุการศึกษา DRM</title>
+
+        <menuitem>
+          <itemlabel>ภาษาไทย</itemlabel>
+          <menu idString="thai_language" static="true">
+            <title>ภาษาไทย</title>
+
+            <menuitem>
+              <itemlabel>คณิตศาสตร์</itemlabel>
+              <menu idString="mathematics_section" static="true">
+                <title>คณิตศาสตร์</title>
+
+                <menuitem>
+                  <itemlabel>เรขาคณิต</itemlabel>
+                  <menu idString="geometry_section" static="true">
+                    <title>เรขาคณิต</title>
+
+                    <menuitem>
+                      <itemlabel>บทเรียนพีทาโกรัส</itemlabel>
+                      <menu idString="pythagoras_lesson_menu" static="true">
+                        <title>บทเรียนพีทาโกรัส</title>
+
+                        <menuitem>
+                          <itemlabel>คำนำ</itemlabel>
+                          <message idString="foreword" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#lesson_intro">หน้าถัดไป (บทนำ — บทเรียนวันนี้)</link>
+                              </links>
+                            </objectparameters>
+                            <title>คำนำ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>สวัสดี!</p>
+                                <p>บทเรียนวันนี้ถูกส่งมาถึงคุณผ่านวิทยุรูปแบบพิเศษชนิดหนึ่ง</p>
+                                <p>เครื่องส่งวิทยุอยู่ห่างออกไปหลายพันกิโลเมตร แต่ด้วยเทคโนโลยีวิทยุดิจิทัล <b>DRM</b> สัญญาณสามารถส่งทั้งเสียงและข้อมูลเสริมมาถึงผู้เรียนได้พร้อมกัน</p>
+                                <p>ข้อมูลเสริมนี้อาจเป็นข้อความ ภาพประกอบ แบบฝึกหัด หรือเอกสารประกอบการเรียน เพื่อช่วยให้ผู้เรียนเข้าใจเนื้อหาได้ดีขึ้นและกลับมาทบทวนซ้ำได้ในภายหลัง</p>
+                                <p>วันนี้เราจะใช้ข้อมูลเพิ่มเติมนี้เพื่อสาธิตบทเรียนคณิตศาสตร์อย่างง่าย ซึ่งเกี่ยวกับสามเหลี่ยม รูปสี่เหลี่ยม และทฤษฎีพีทาโกรัส</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>บทนำ — บทเรียนวันนี้</itemlabel>
+                          <message idString="lesson_intro" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page1_right_triangle">หน้าถัดไป (หน้า 1 — สามเหลี่ยมมุมฉาก)</link>
+                                <link type="jml" target="#foreword">หน้าก่อนหน้า (คำนำ)</link>
+                              </links>
+                            </objectparameters>
+                            <title>บทนำ — บทเรียนวันนี้</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>บทเรียนวันนี้เกี่ยวกับ <b>รูปหลายเหลี่ยม</b> หรือรูปทรงที่มีหลายด้าน ตัวอย่างพื้นฐานที่สุดคือ <b>สามเหลี่ยม</b> ซึ่งมี 3 ด้าน และ <b>รูปสี่เหลี่ยม</b> ซึ่งมี 4 ด้าน</p>
+                                <p>เราจะศึกษาความสัมพันธ์ระหว่างด้านและมุมของรูปต่าง ๆ โดยเฉพาะสามเหลี่ยมพิเศษที่มีคุณสมบัติน่าสนใจ</p>
+                                <p>พีทาโกรัสค้นพบว่ามุมภายในของสามเหลี่ยมทุกอันรวมกันได้ 180° และยังมีความสัมพันธ์พิเศษระหว่างด้านของสามเหลี่ยมมุมฉาก ซึ่งกลายมาเป็นทฤษฎีที่สำคัญมากในคณิตศาสตร์</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 1</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 1 — สามเหลี่ยมมุมฉาก</itemlabel>
+                          <message idString="page1_right_triangle" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page2_isosceles">หน้าถัดไป (หน้า 2 — สามเหลี่ยมหน้าจั่ว)</link>
+                                <link type="jml" target="#lesson_intro">หน้าก่อนหน้า (บทนำ — บทเรียนวันนี้)</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 1 — สามเหลี่ยมมุมฉาก</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>ตัวอย่างต่อไปนี้คือ <b>สามเหลี่ยมมุมฉาก</b></p>
+                                <image type="url" target="https://placehold.co/260x220/cfe9e0/222222?text=Right+Triangle">ภาพสามเหลี่ยมมุมฉาก</image>
+                                <p>สามเหลี่ยมมุมฉากจะมีมุมหนึ่งเป็น 90° เสมอ ถ้ามุมอีกมุมหนึ่งมีค่า 60° มุมที่เหลือจะต้องเป็น 30° เพราะมุมภายในรวมกันได้ 180°</p>
+                                <p>90 + 60 + 30 = 180</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 2</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 2 — สามเหลี่ยมหน้าจั่ว</itemlabel>
+                          <message idString="page2_isosceles" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page3_equilateral">หน้าถัดไป (หน้า 3 — สามเหลี่ยมด้านเท่า)</link>
+                                <link type="jml" target="#page1_right_triangle">หน้าก่อนหน้า (หน้า 1 — สามเหลี่ยมมุมฉาก)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 2 — สามเหลี่ยมหน้าจั่ว</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>นี่คือ <b>สามเหลี่ยมหน้าจั่ว</b> ซึ่งมีมุมสองมุมเท่ากันเสมอ</p>
+                                <image type="url" target="https://placehold.co/260x240/cfe9e0/222222?text=Isosceles+Triangle">ภาพสามเหลี่ยมหน้าจั่ว</image>
+                                <p>ถ้ามุมที่ฐานทั้งสองมุมมีค่า 75° เมื่อนำมาบวกกันจะได้ 150° ดังนั้นมุมด้านบนจึงต้องเป็น 30°</p>
+                                <p>75 + 75 + 30 = 180</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 3</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 3 — สามเหลี่ยมด้านเท่า</itemlabel>
+                          <message idString="page3_equilateral" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page4_scalene">หน้าถัดไป (หน้า 4 — สามเหลี่ยมด้านไม่เท่า)</link>
+                                <link type="jml" target="#page2_isosceles">หน้าก่อนหน้า (หน้า 2 — สามเหลี่ยมหน้าจั่ว)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 3 — สามเหลี่ยมด้านเท่า</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>สามเหลี่ยมด้านเท่ามีมุมทั้งสามมุมเท่ากัน และด้านทั้งสามด้านยาวเท่ากันด้วย</p>
+                                <image type="url" target="https://placehold.co/260x220/cfe9e0/222222?text=Equilateral+Triangle">ภาพสามเหลี่ยมด้านเท่า</image>
+                                <p>มุมของมันจึงเป็น 60° ทั้งหมด และ 60 + 60 + 60 = 180</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 4</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 4 — สามเหลี่ยมด้านไม่เท่า</itemlabel>
+                          <message idString="page4_scalene" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page5_quadrilateral">หน้าถัดไป (หน้า 5 — รูปสี่เหลี่ยม)</link>
+                                <link type="jml" target="#page3_equilateral">หน้าก่อนหน้า (หน้า 3 — สามเหลี่ยมด้านเท่า)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 4 — สามเหลี่ยมด้านไม่เท่า</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>สามเหลี่ยมด้านไม่เท่าจะมีมุมทั้งสามต่างกันทั้งหมด</p>
+                                <image type="url" target="https://placehold.co/260x180/cfe9e0/222222?text=Scalene+Triangle">ภาพสามเหลี่ยมด้านไม่เท่า</image>
+                                <p>แม้มุมต่างกัน แต่ผลรวมของมุมยังคงเท่ากับ 180° เช่นเดิม</p>
+                                <p>58 + 77 + 45 = 180</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 5</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 5 — รูปสี่เหลี่ยม</itemlabel>
+                          <message idString="page5_quadrilateral" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page6_irregular_quadrilateral">หน้าถัดไป (หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ)</link>
+                                <link type="jml" target="#page4_scalene">หน้าก่อนหน้า (หน้า 4 — สามเหลี่ยมด้านไม่เท่า)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 5 — รูปสี่เหลี่ยม</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>รูปสี่เหลี่ยมมี 4 ด้าน และ 4 มุม ผลรวมของมุมภายในทั้งหมดเท่ากับ 360°</p>
+                                <image type="url" target="https://placehold.co/260x220/cfe9e0/222222?text=Quadrilateral">ภาพรูปสี่เหลี่ยม</image>
+                                <p>ในกรณีของสี่เหลี่ยมจัตุรัส มุมทั้งสี่มุมจะเป็นมุมฉาก หรือ 90°</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 6</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ</itemlabel>
+                          <message idString="page6_irregular_quadrilateral" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page7_pythagorean_theorem">หน้าถัดไป (หน้า 7 — ทฤษฎีพีทาโกรัส)</link>
+                                <link type="jml" target="#page5_quadrilateral">หน้าก่อนหน้า (หน้า 5 — รูปสี่เหลี่ยม)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>รูปสี่เหลี่ยมไม่สม่ำเสมอจะมีมุมแตกต่างกัน แต่ผลรวมยังคงได้ 360°</p>
+                                <image type="url" target="https://placehold.co/260x200/cfe9e0/222222?text=Irregular+Quadrilateral">ภาพรูปสี่เหลี่ยมไม่สม่ำเสมอ</image>
+                                <p>ตัวอย่างเช่น 80 + 94 + 68 + 118 = 360</p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 7</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 7 — ทฤษฎีพีทาโกรัส</itemlabel>
+                          <message idString="page7_pythagorean_theorem" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page8_345_triangle">หน้าถัดไป (หน้า 8 — สามเหลี่ยม 3,4,5)</link>
+                                <link type="jml" target="#page6_irregular_quadrilateral">หน้าก่อนหน้า (หน้า 6 — รูปสี่เหลี่ยมไม่สม่ำเสมอ)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 7 — ทฤษฎีพีทาโกรัส</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>ตอนนี้เราได้ศึกษารูปหลายเหลี่ยมและรูปสี่เหลี่ยมกันแล้ว ถึงเวลามาศึกษาความยาวด้านของสามเหลี่ยมมุมฉาก</p>
+                                <image type="url" target="https://placehold.co/320x260/e8dbf2/222222?text=Pythagorean+Theorem">ภาพทฤษฎีพีทาโกรัส</image>
+                                <p>ด้านที่ยาวที่สุดของสามเหลี่ยมเรียกว่า <b>ด้านตรงข้ามมุมฉาก</b> และมักแทนด้วยตัวอักษร c ส่วนด้านอีกสองด้านแทนด้วย a และ b</p>
+                                <p>ทฤษฎีพีทาโกรัสกล่าวว่า พื้นที่ของสี่เหลี่ยมจัตุรัสบนด้าน c เท่ากับผลรวมของพื้นที่สี่เหลี่ยมจัตุรัสบนด้าน a และ b</p>
+                                <p>เขียนได้เป็นสูตรว่า: <b>c² = a² + b²</b></p>
+                                <p>จากโครงสร้างเมนู Journaline กรุณาไปที่: คณิตศาสตร์ → เรขาคณิต → บทเรียนพีทาโกรัส → หน้า 8</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 8 — สามเหลี่ยม 3,4,5</itemlabel>
+                          <message idString="page8_345_triangle" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page9_example_calculation">หน้าถัดไป (หน้า 9 — ตัวอย่างการคำนวณ)</link>
+                                <link type="jml" target="#page7_pythagorean_theorem">หน้าก่อนหน้า (หน้า 7 — ทฤษฎีพีทาโกรัส)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 8 — สามเหลี่ยม 3,4,5</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>สามเหลี่ยมชนิดพิเศษที่รู้จักกันดีคือ <b>สามเหลี่ยม 3,4,5</b> ซึ่งมีด้านประกอบด้วยความยาว 3 หน่วย, 4 หน่วย และ 5 หน่วย</p>
+                                <image type="url" target="https://placehold.co/320x240/e8dbf2/222222?text=3-4-5+Triangle">ภาพสามเหลี่ยม 3,4,5</image>
+                                <p>จากทฤษฎีพีทาโกรัส เรารู้ว่าถ้า a = 3 และ b = 4 แล้ว c² = 3² + 4² = 9 + 16 = 25 ดังนั้น c = 5</p>
+                                <p>ตอนนี้ไปต่อที่หน้า 9 เพื่อดูตัวอย่างการคำนวณ</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้า 9 — ตัวอย่างการคำนวณ</itemlabel>
+                          <message idString="page9_example_calculation" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#last_page_goodbye">หน้าถัดไป (หน้าสุดท้าย — ลาก่อน)</link>
+                                <link type="jml" target="#page8_345_triangle">หน้าก่อนหน้า (หน้า 8 — สามเหลี่ยม 3,4,5)</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้า 9 — ตัวอย่างการคำนวณ</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>ลองคำนวณดูว่า ถ้าสามเหลี่ยมมุมฉากมีด้านประกอบมุมฉากยาว 6 และ 8 หน่วย ด้านตรงข้ามมุมฉากจะยาวเท่าไร</p>
+                                <image type="url" target="https://placehold.co/320x220/cfe9e0/222222?text=Example+Calculation">ภาพตัวอย่างการคำนวณ</image>
+                                <p>ใช้สูตร c² = a² + b²</p>
+                                <p>แทนค่าได้ว่า c² = 6² + 8² = 36 + 64 = 100</p>
+                                <p>ดังนั้น c = √100 = 10</p>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>หน้าสุดท้าย — ลาก่อน</itemlabel>
+                          <message idString="last_page_goodbye" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#homework_math_challenge">การบ้าน — แบบฝึกท้าทายคณิตศาสตร์ประจำวัน</link>
+                                <link type="jml" target="#page9_example_calculation">หน้าก่อนหน้า (หน้า 9 — ตัวอย่างการคำนวณ)</link>
+                                <link type="jml" target="#page1_right_triangle">ฉันต้องการเริ่มบทเรียนใหม่ตั้งแต่ต้น (หน้า 1)</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากพักและเรียนรู้เพิ่มเติมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>หน้าสุดท้าย — ลาก่อน</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>นี่คือจุดสิ้นสุดของบทเรียนวันนี้ เราหวังว่าคุณจะสนุกกับการเรียนรู้ และเข้าใจเกี่ยวกับมุม ด้าน และความสัมพันธ์ของรูปทรงต่าง ๆ มากขึ้น</p>
+                                <p>ขอบคุณ แล้วพบกันใหม่ในบทเรียนครั้งถัดไป!</p>
+                                <image type="url" target="https://placehold.co/220x90/ffffff/005bbb?text=DRM+Logo">โลโก้ DRM</image>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>การบ้าน — แบบฝึกท้าทายคณิตศาสตร์ประจำวัน</itemlabel>
+                          <message idString="homework_math_challenge" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#homework_answer">เฉลยคำตอบของฉัน</link>
+                                <link type="jml" target="#page1_right_triangle">ฉันยังไม่เข้าใจ — ขอเริ่มเรียนใหม่ตั้งแต่ต้น</link>
+                                <link type="jml" target="#homework_answer">ฉันยังไม่เข้าใจ — ขอให้แสดงเฉลย</link>
+                              </links>
+                            </objectparameters>
+                            <title>การบ้าน — แบบฝึกท้าทายคณิตศาสตร์ประจำวัน</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>เยี่ยมมาก — คุณได้เรียนครบทั้งบทแล้ว ตอนนี้ถึงเวลาลองทำโจทย์สั้น ๆ ด้วยตนเอง</p>
+                                <p>กำหนดให้สามเหลี่ยมมุมฉากมีด้านประกอบมุมฉากยาว a = 6 และ b = 8 จงหาความยาวด้านตรงข้ามมุมฉาก x</p>
+                                <image type="url" target="https://placehold.co/320x220/cfe9e0/222222?text=Homework+Question">ภาพโจทย์การบ้าน</image>
+                                <p>ลองคำนวณด้วยตัวเองก่อน แล้วค่อยไปดูเฉลย</p>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>เฉลยคำตอบของวันนี้</itemlabel>
+                          <message idString="homework_answer" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page1_right_triangle">ฉันอยากทบทวนบทเรียนอีกครั้ง</link>
+                                <link type="jml" target="#further_pythagoras">ฉันอยากอ่านข้อมูลเสริมเกี่ยวกับพีทาโกรัส</link>
+                              </links>
+                            </objectparameters>
+                            <title>เฉลยคำตอบของวันนี้</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p>ยอดเยี่ยม! คำตอบที่ถูกต้องคือ 10</p>
+                                <p>ใช้สูตร c² = a² + b²</p>
+                                <p>ดังนั้น c² = 6² + 8² = 36 + 64 = 100</p>
+                                <p>ดังนั้น c = √100 = 10</p>
+                                <image type="url" target="https://placehold.co/320x260/e8f6d8/222222?text=Correct+Answer+10">ภาพเฉลยคำตอบ</image>
+                                <p>สรุปได้ว่า ด้านตรงข้ามมุมฉากมีความยาว 10 หน่วย</p>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                        <menuitem>
+                          <itemlabel>ข้อมูลเพิ่มเติม: พีทาโกรัส</itemlabel>
+                          <message idString="further_pythagoras" static="true">
+                            <objectparameters>
+                              <links>
+                                <link type="jml" target="#page1_right_triangle">กลับไปยังบทเรียนหน้า 1</link>
+                              </links>
+                            </objectparameters>
+                            <title>ข้อมูลเพิ่มเติม: พีทาโกรัส</title>
+                            <body>
+                              <text>
+                                <image type="url" target="https://placehold.co/220x140/f5d27d/222222?text=Education">โลโก้การศึกษา</image>
+                                <p><b>พีทาโกรัสแห่งซามอส</b> เป็นนักปรัชญาและนักคณิตศาสตร์ชาวกรีก ผู้มีชีวิตอยู่ราว 570 ปีก่อนคริสตกาล เขาเป็นที่รู้จักดีที่สุดจากทฤษฎีพีทาโกรัส รวมถึงแนวคิดที่มีอิทธิพลต่อคณิตศาสตร์ ดนตรี และปรัชญา</p>
+                                <image type="url" target="https://placehold.co/300x360/e8dfd1/222222?text=Pythagoras">ภาพพีทาโกรัส</image>
+                                <p><b>ชีวิต:</b> พีทาโกรัสเกิดบนเกาะซามอส และเดินทางศึกษาความรู้ในหลายดินแดน ก่อนจะตั้งชุมชนทางความคิดขึ้นที่เมืองโครตอน ทางตอนใต้ของอิตาลี</p>
+                                <p><b>คณิตศาสตร์:</b> เขาและกลุ่มลูกศิษย์สนใจในเรื่องตัวเลข รูปทรง และความสัมพันธ์ระหว่างสัดส่วนต่าง ๆ โดยเฉพาะความสัมพันธ์ของด้านในสามเหลี่ยมมุมฉาก</p>
+                                <p><b>ดนตรี:</b> สำนักพีทาโกรัสยังพบว่า อัตราส่วนเชิงคณิตศาสตร์มีความเกี่ยวข้องกับเสียงดนตรีและความกลมกลืนของเสียง</p>
+                                <p><b>มรดกทางความคิด:</b> แนวคิดของเขาส่งอิทธิพลอย่างมากต่อการพัฒนาคณิตศาสตร์ เรขาคณิต และความคิดเชิงเหตุผลในโลกตะวันตก</p>
+                              </text>
+                            </body>
+                          </message>
+                        </menuitem>
+
+                      </menu>
+                    </menuitem>
+                  </menu>
+                </menuitem>
+              </menu>
+            </menuitem>
+          </menu>
+        </menuitem>
+      </menu>
+    </menuitem>
+  </menu>
+</journaline>

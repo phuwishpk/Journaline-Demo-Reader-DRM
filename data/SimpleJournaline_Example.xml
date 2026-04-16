@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journaline xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Journaline.xsd">
+
+	<fileinfo>
+		<description>Journaline(R) XML Example - Demonstration of a basic Journaline service structure</description>
+		<version>2.0.0, 2023-03-22</version>
+		<author>Fraunhofer IIS, Erlangen, Germany</author>
+		<contact>https://www.journaline.info, mailto:journaline-support@iis.fraunhofer.de</contact>
+		<copyright>
+			/**************************************************************************
+						(C) Copyright Fraunhofer IIS (2007-2023)
+										All Rights Reserved
+			This software and/or program is protected by copyright law and
+			international treaties. Any unauthorized reproduction or distribution
+			of this software and/or program, or any portion of it, may result in
+			severe civil and criminal penalties, and will be prosecuted to the
+			maximum extent possible under law.
+			**************************************************************************/
+		</copyright>
+	</fileinfo>
+
+	<menu>
+		<title>Welcome to Your Weather Site</title>
+
+		<menuitem>
+			<itemlabel>Hot News</itemlabel>
+			<message idString="hot_news">
+				<title>Smog warning! Sunshine and high temperatures have...</title>
+			</message>
+  	</menuitem>
+	  <menuitem>
+			<message>
+				<title>Today's Forecast</title>
+				<body>
+					<text>
+						Today will be the hottest day of the summer.
+						Temperatures of about 41°C and no clouds will make it a 
+						wonderful day for sun bathing. ...
+					</text>
+				</body>
+			</message>
+		</menuitem>
+
+		<menuitem>
+			<menu>
+				<title>Three-Days' Forecast</title>
+
+				<menuitem>
+					<message>
+						<title>Wednesday</title>
+						<body>
+							<text>
+								Hot and sunny. Temperatures of about 38°C. Later torments and...
+							</text>
+						</body>
+					</message>
+				</menuitem>
+
+				<menuitem>
+					<message>
+						<title>Thursday</title>
+						<body>
+							<text>
+								Cloudy and strong winds. Falling temperatures. In the afternoon first showers ...
+							</text>
+						</body>
+					</message>
+				</menuitem>
+
+				<menuitem>
+					<message>
+						<title>Friday</title>
+						<body>
+							<text>Rain and temperatures of about 23°C. Winds are lowering ...</text>
+						</body>
+					</message>
+				</menuitem>
+			</menu>
+		</menuitem>
+
+		<menuitem>
+			<message>
+				<title>Isles Weather</title>
+				<body>
+					<listitem>Edinburgh<tab/>37°C<tab/>cloudy</listitem>
+					<listitem>London<tab/>41°C<tab/>sunny</listitem>
+					<listitem>Manchester<tab/>38°C<tab/>sunny</listitem>
+				</body>
+			</message>
+		</menuitem>
+
+		<menuitem>
+			<message>
+				<title>World Weather</title>
+				<body>
+					<listitem>Beijing<tab/>35°C<tab/>rain</listitem>
+					<listitem>New York<tab/>24°C<tab/>torments</listitem>
+					<listitem>Sydney<tab/>11°C<tab/>sunny</listitem>
+				</body>
+			</message>
+		</menuitem>
+
+	</menu>
+
+</journaline>

@@ -1,0 +1,21 @@
+{
+  "root.xml::hot_news": "/audio/hot_news.wav",
+  "root.xml::weather_today": "/audio/weather_today.wav",
+  "root.xml::After_Tomorrow": "/audio/after_tomorrow.wav",
+  "root.xml::title:unicode-example": "/audio/unicode_example.wav",
+  "root.xml::title:imprint": "/audio/imprint.wav",
+  "root.xml::title:georegions": "/audio/georegions.wav",
+  "fulljournaline_example.xml::hot_news": "/audio/hot_news.wav",
+  "fulljournaline_example.xml::weather_today": "/audio/weather_today.wav",
+  "fulljournaline_example.xml::After_Tomorrow": "/audio/after_tomorrow.wav",
+  "fulljournaline_example.xml::title:unicode-example": "/audio/unicode_example.wav",
+  "fulljournaline_example.xml::title:imprint": "/audio/imprint.wav",
+  "fulljournaline_example.xml::title:georegions": "/audio/georegions.wav",
+  "hot_news": "/audio/hot_news.wav",
+  "weather_today": "/audio/weather_today.wav",
+  "After_Tomorrow": "/audio/after_tomorrow.wav",
+  "title:unicode-example": "/audio/unicode_example.wav",
+  "title:imprint": "/audio/imprint.wav",
+  "title:georegions": "/audio/georegions.wav",
+  "simplejournaline_example.xml": "/audio/generic_root.wav"
+}
